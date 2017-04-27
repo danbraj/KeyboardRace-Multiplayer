@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.Vector;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -14,24 +15,32 @@ public class Klient extends JFrame {
     private JLabel lbStatus;
 
     private String hostname = "localhost:2345";
-	private boolean isConnected = false;
+    private boolean isConnected = false;
 
-    public Klient() {
+    private PanelPlayer[] panelGracza = new PanelPlayer[6];
+    public static Vector<Klient> clients = new Vector<Klient>(6);
 
-		super("Klient v0.2");
-		setSize(880, 600);
+	public Klient() {
+        super("Klient v0.31");
+        setSize(880, 600);
         setMinimumSize(new Dimension(640, 600));
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setLayout(new BorderLayout());
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
         
         // -- panel z graczami
         panelGraczy = new JPanel(new GridLayout(6, 0));
-        panelGraczy.setPreferredSize(new Dimension(240, 240));
-        panelGraczy.setBackground(Color.BLUE); //
+        for (int i = 0; i < 6; i++) {
+            panelGracza[i] = new PanelPlayer(i);
+            panelGracza[i].setPreferredSize(new Dimension(40, 40));
+            panelGraczy.add(panelGracza[i]);
+        }
 
         // -- panel gry
+        panelGry = new JPanel(new BorderLayout());
+        panelGry.setBackground(Color.LIGHT_GRAY);
+
         text = new JTextArea();
-        text.setText("Pole tekstowe");
+        text.setText("zadanie.getText()");
         text.setWrapStyleWord(true);
         text.setLineWrap(true);
         text.setOpaque(false);
@@ -53,43 +62,40 @@ public class Klient extends JFrame {
         logs.setFocusable(false);
         logs.setBorder(new EmptyBorder(4, 4, 4, 4));
 
-        panelGry = new JPanel(new BorderLayout());
-        panelGry.setBackground(Color.LIGHT_GRAY);
-
         panelGry.add(text, BorderLayout.CENTER);
         panelGry.add(input, BorderLayout.SOUTH);
 
         // -- panel po prawej stronie
         panelBoczny = new JPanel(new BorderLayout());
-        panelBoczny.setBackground(Color.MAGENTA); //
-
+        
+        // ---- panel dane do logowania + informacje
         panelLogowania = new JPanel(new GridLayout(2, 2));
         panelLogowania.setBorder(new EmptyBorder(12, 10, 12, 10));
-        panelLogowania.setBackground(Color.GREEN); //
 
         host = new JTextField(hostname);
         host.setFont(new Font("Verdana", Font.PLAIN, 12));
-
-        panelLogowania.add(new JLabel("Serwer (host:port)"));
-        panelLogowania.add(new JLabel("v0.2", SwingConstants.RIGHT));
-        panelLogowania.add(host);
-
         lbStatus = new JLabel("Status: niepolaczony", SwingConstants.RIGHT);
         lbStatus.setForeground(Color.RED);
+
+        panelLogowania.add(new JLabel("Serwer (host:port)"));
+        panelLogowania.add(new JLabel("v0.31", SwingConstants.RIGHT));
+        panelLogowania.add(host);
         panelLogowania.add(lbStatus);
 
+        // ---- panel z przyciskami (prawy dolny róg)
         panelDodatkowy = new JPanel(new GridLayout(2, 2));
-        panelDodatkowy.setBackground(Color.RED); //
-
+        
+        Obsluga obsluga = new Obsluga();
         btnHowToPlay = new JButton("Jak grac?");
-        btnHowToPlay.setEnabled(false);
         btnAddToSerwer = new JButton("Dodaj tekst do gry");
+        btnAddToSerwer.addActionListener(obsluga);
         btnAddToSerwer.setEnabled(false);
         btnReady = new JButton("Gotowy");
+        btnReady.addActionListener(obsluga);
         btnReady.setEnabled(false);
         btnLogon = new JButton("Polacz");
-        btnLogon.setEnabled(false);
         btnLogon.setPreferredSize(new Dimension(42, 42));
+        btnLogon.addActionListener(obsluga);
 
         panelDodatkowy.add(btnLogon);
         panelDodatkowy.add(btnAddToSerwer);
@@ -118,6 +124,62 @@ public class Klient extends JFrame {
 
    		setVisible(true);
 	}
+
+    private void display() {
+        
+        JTextArea ta = new JTextArea();
+		ta.setLineWrap(true);
+        ta.setPreferredSize(new Dimension(300, 100));
+        JTextField tf = new JTextField();
+
+        JPanel panel = new JPanel(new BorderLayout());
+        JPanel panel2 = new JPanel(new GridLayout(0, 1));
+
+        panel.add(new JLabel("Tresc:"), BorderLayout.NORTH);
+        panel.add(new JScrollPane(ta), BorderLayout.CENTER);
+        panel2.add(new JLabel("Tytul (opcjonalnie):"));
+        panel2.add(tf);
+
+        panel.add(panel2, BorderLayout.SOUTH);
+        
+        int result = JOptionPane.showConfirmDialog(null, panel, "Dodaj prosbe z tekstem do serwera", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            System.out.println(tf.getText() + " : " + ta.getText());
+        } else {
+            System.out.println("cancel");
+        }
+    }
+
+    private class Obsluga implements ActionListener {
+
+		public void actionPerformed(ActionEvent e) {
+
+            if (e.getSource() == btnAddToSerwer) {
+                display();
+            } else if (e.getSource() == btnReady) {
+                panelGracza[0].changeReady();
+                btnReady.setText(
+                    panelGracza[0].getReady() ? "Niegotowy" : "Gotowy"
+                );
+            } else if (e.getSource() == btnLogon) {
+                isConnected = !isConnected;
+                if (isConnected) {
+                    btnLogon.setText("Rozlacz");
+                    lbStatus.setText("Status: polaczony");
+                    lbStatus.setForeground(Color.decode("#006600"));
+                    btnReady.setEnabled(true);
+                    btnAddToSerwer.setEnabled(true);
+                } else {
+                    btnLogon.setText("Polacz");
+                    lbStatus.setText("Status: niepolaczony");
+                    lbStatus.setForeground(Color.RED);
+                    btnReady.setEnabled(false);
+                    btnAddToSerwer.setEnabled(false);
+                }
+            }
+		}
+    }
 
     public static void main(String[] args) {
         new Klient();
