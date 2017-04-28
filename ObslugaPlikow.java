@@ -26,10 +26,9 @@ class ObslugaPlikow {
     }
 
     public static ArrayList<File> getFiles() {
+        ArrayList<File> files = new ArrayList<File>();
         try {
             File folder = new File("Texts");
-            ArrayList<File> files = new ArrayList<File>();
-
             for (File file : folder.listFiles()) {
                 if (!file.isDirectory() && ObslugaPlikow.getFileExtension(file).equals("txt")) {
                     // System.out.println(file.getName());
@@ -43,10 +42,9 @@ class ObslugaPlikow {
                     files.add(file);
                 }
             }
-            return files;
         } catch (NullPointerException e) {
             System.out.println("Nie ma katalogu (Texts).");
         }
-        return null;
+        return files;
     }
 }

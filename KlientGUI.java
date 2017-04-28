@@ -169,9 +169,11 @@ public class KlientGUI extends JFrame {
                 display();
             } else if (e.getSource() == btnReady) {
                 panelGracza[0].changeReady();
-                btnReady.setText(panelGracza[0].getReady() ? "Niegotowy" : "Gotowy");
-
-                startGame();
+                if (panelGracza[0].getReady()) {
+                    btnReady.setText("Niegotowy");
+                    startGame();
+                } else
+                    btnReady.setText("Gotowy");
             } else if (e.getSource() == btnLogon) {
                 isConnected = !isConnected;
                 if (isConnected) {
@@ -180,7 +182,6 @@ public class KlientGUI extends JFrame {
                     lbStatus.setForeground(Color.decode("#006600"));
                     btnReady.setEnabled(true);
                     btnAddToSerwer.setEnabled(true);
-                    tempFunction();
                 } else {
                     btnLogon.setText("Polacz");
                     lbStatus.setText("Status: niepolaczony");
@@ -210,20 +211,29 @@ public class KlientGUI extends JFrame {
     }
 
     public void startGame() {
-        String taskContent = "Programowanie komputerow to proces projektowania, tworzenia, testowania i utrzymywania kodu zrodlowego programow komputerowych. - wikipedia";
-        zadanie = new Zadanie(taskContent);
-        text.setText(zadanie.getText());
-        input.setEnabled(true);
-        input.requestFocus();
-    }
-
-    public void tempFunction() {
 
         ArrayList<File> files = ObslugaPlikow.getFiles();
-        if (!files.isEmpty())
-            for (File file : files)
-                System.out.println(file.getName());
-        else
+        if (!files.isEmpty()) {
+            // for (File file : files)
+            //     System.out.println(file.getName());
+            int filesCount = files.size();
+            int randomIndex = new Random().nextInt(filesCount);
+            File file = files.get(randomIndex);
+
+            System.out.println("Zostal wylosowany " + randomIndex + " : " + file.getName());
+
+            try {
+                String taskContent = new Scanner(file, "UTF-8").useDelimiter("\\A").next();
+                zadanie = new Zadanie(taskContent);
+            } catch (IOException e) {
+                System.out.println("Blad odczytu pliku.");
+                System.exit(2);
+            }
+
+            text.setText(zadanie.getText());
+            input.setEnabled(true);
+            input.requestFocus();
+        } else
             System.out.println("Nie ma plikow z tekstami");
     }
 
