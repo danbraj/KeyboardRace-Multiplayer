@@ -20,6 +20,8 @@ public class Klient extends JFrame {
     private PanelPlayer[] panelGracza = new PanelPlayer[6];
     public static Vector<Klient> clients = new Vector<Klient>(6);
 
+    private Zadanie zadanie;
+
 	public Klient() {
         super("Klient v0.31");
         setSize(880, 600);
@@ -52,6 +54,10 @@ public class Klient extends JFrame {
         input = new JTextField();
         input.setFont(new Font("Verdana", Font.PLAIN, 26));
         input.setPreferredSize(new Dimension(450, 42));
+        input.setEnabled(false);
+
+        Obsluga obsluga = new Obsluga();
+        input.addKeyListener(obsluga);
 
         logs = new JTextArea();
         logs.setText("Logi aplikacji");
@@ -85,7 +91,6 @@ public class Klient extends JFrame {
         // ---- panel z przyciskami (prawy dolny róg)
         panelDodatkowy = new JPanel(new GridLayout(2, 2));
         
-        Obsluga obsluga = new Obsluga();
         btnHowToPlay = new JButton("Jak grac?");
         btnAddToSerwer = new JButton("Dodaj tekst do gry");
         btnAddToSerwer.addActionListener(obsluga);
@@ -151,7 +156,7 @@ public class Klient extends JFrame {
         }
     }
 
-    private class Obsluga implements ActionListener {
+    private class Obsluga extends KeyAdapter implements ActionListener {
 
 		public void actionPerformed(ActionEvent e) {
 
@@ -162,6 +167,8 @@ public class Klient extends JFrame {
                 btnReady.setText(
                     panelGracza[0].getReady() ? "Niegotowy" : "Gotowy"
                 );
+                
+                startGame();
             } else if (e.getSource() == btnLogon) {
                 isConnected = !isConnected;
                 if (isConnected) {
@@ -179,6 +186,31 @@ public class Klient extends JFrame {
                 }
             }
 		}
+
+        public void keyReleased(KeyEvent e){
+			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                if (zadanie.ifEqualsGoNext(input.getText())) {
+
+                    panelGracza[0].progress.setValue(zadanie.getProgress());
+
+                    if (Zadanie.SUCCESS) {
+                        System.out.println("Zwyciestwo!");
+                        text.setText("Zwyciestwo!");
+                    } else {
+                        text.replaceRange(null, 0, input.getText().length());
+                        input.setText("");
+                    }
+                }
+			}
+		}
+    }
+
+    public void startGame() {
+        String taskContent = "Programowanie komputerow to proces projektowania, tworzenia, testowania i utrzymywania kodu zrodlowego programow komputerowych. - wikipedia";
+        zadanie = new Zadanie(taskContent);
+        text.setText(zadanie.getText());
+        input.setEnabled(true);
+        input.requestFocus();
     }
 
     public static void main(String[] args) {
