@@ -3,32 +3,34 @@ import java.net.*;
 import java.util.Vector;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-public class Klient extends JFrame {
+public class KlientGUI extends JFrame {
+
+    private static final String VERSION = "v0.4";
 
     private JTextArea text, logs;
     private JPanel panelGraczy, panelGry, panelBoczny, panelLogowania, panelDodatkowy;
     private JTextField host, input;
-    private JButton btnHowToPlay, btnAddToSerwer, btnReady, btnLogon; 
+    private JButton btnHowToPlay, btnAddToSerwer, btnReady, btnLogon;
     private JLabel lbStatus;
 
     private String hostname = "localhost:2345";
     private boolean isConnected = false;
 
     private PanelPlayer[] panelGracza = new PanelPlayer[6];
-    public static Vector<Klient> clients = new Vector<Klient>(6);
 
     private Zadanie zadanie;
 
-	public Klient() {
-        super("Klient v0.31");
+    public KlientGUI() {
+        super("Klient " + VERSION);
         setSize(880, 600);
         setMinimumSize(new Dimension(640, 600));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-        
+
         // -- panel z graczami
         panelGraczy = new JPanel(new GridLayout(6, 0));
         for (int i = 0; i < 6; i++) {
@@ -73,7 +75,7 @@ public class Klient extends JFrame {
 
         // -- panel po prawej stronie
         panelBoczny = new JPanel(new BorderLayout());
-        
+
         // ---- panel dane do logowania + informacje
         panelLogowania = new JPanel(new GridLayout(2, 2));
         panelLogowania.setBorder(new EmptyBorder(12, 10, 12, 10));
@@ -84,13 +86,13 @@ public class Klient extends JFrame {
         lbStatus.setForeground(Color.RED);
 
         panelLogowania.add(new JLabel("Serwer (host:port)"));
-        panelLogowania.add(new JLabel("v0.31", SwingConstants.RIGHT));
+        panelLogowania.add(new JLabel(VERSION, SwingConstants.RIGHT));
         panelLogowania.add(host);
         panelLogowania.add(lbStatus);
 
         // ---- panel z przyciskami (prawy dolny róg)
         panelDodatkowy = new JPanel(new GridLayout(2, 2));
-        
+
         btnHowToPlay = new JButton("Jak grac?");
         btnAddToSerwer = new JButton("Dodaj tekst do gry");
         btnAddToSerwer.addActionListener(obsluga);
@@ -107,33 +109,35 @@ public class Klient extends JFrame {
         panelDodatkowy.add(btnReady);
         panelDodatkowy.add(btnHowToPlay);
 
+        // ---- panel (opakowanie) dla panelu z informacjami i przyciskami 
         JPanel opakowanie = new JPanel();
         opakowanie.setLayout(new BoxLayout(opakowanie, BoxLayout.Y_AXIS));
 
         opakowanie.add(panelLogowania);
         opakowanie.add(panelDodatkowy);
-        
+
         panelBoczny.add(new JScrollPane(logs), BorderLayout.CENTER);
         panelBoczny.add(opakowanie, BorderLayout.SOUTH);
 
+        // -- rozmieszczenie paneli
         add(panelGraczy, BorderLayout.NORTH);
         add(panelGry, BorderLayout.CENTER);
         add(panelBoczny, BorderLayout.EAST);
 
-		addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				setVisible(false);
-				System.exit(0);
-			}
-		});
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                setVisible(false);
+                System.exit(0);
+            }
+        });
 
-   		setVisible(true);
-	}
+        setVisible(true);
+    }
 
     private void display() {
-        
+
         JTextArea ta = new JTextArea();
-		ta.setLineWrap(true);
+        ta.setLineWrap(true);
         ta.setPreferredSize(new Dimension(300, 100));
         JTextField tf = new JTextField();
 
@@ -146,8 +150,9 @@ public class Klient extends JFrame {
         panel2.add(tf);
 
         panel.add(panel2, BorderLayout.SOUTH);
-        
-        int result = JOptionPane.showConfirmDialog(null, panel, "Dodaj prosbe z tekstem do serwera", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+        int result = JOptionPane.showConfirmDialog(null, panel, "Dodaj prosbe z tekstem do serwera",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
             System.out.println(tf.getText() + " : " + ta.getText());
@@ -158,16 +163,14 @@ public class Klient extends JFrame {
 
     private class Obsluga extends KeyAdapter implements ActionListener {
 
-		public void actionPerformed(ActionEvent e) {
+        public void actionPerformed(ActionEvent e) {
 
             if (e.getSource() == btnAddToSerwer) {
                 display();
             } else if (e.getSource() == btnReady) {
                 panelGracza[0].changeReady();
-                btnReady.setText(
-                    panelGracza[0].getReady() ? "Niegotowy" : "Gotowy"
-                );
-                
+                btnReady.setText(panelGracza[0].getReady() ? "Niegotowy" : "Gotowy");
+
                 startGame();
             } else if (e.getSource() == btnLogon) {
                 isConnected = !isConnected;
@@ -177,6 +180,7 @@ public class Klient extends JFrame {
                     lbStatus.setForeground(Color.decode("#006600"));
                     btnReady.setEnabled(true);
                     btnAddToSerwer.setEnabled(true);
+                    tempFunction();
                 } else {
                     btnLogon.setText("Polacz");
                     lbStatus.setText("Status: niepolaczony");
@@ -185,10 +189,10 @@ public class Klient extends JFrame {
                     btnAddToSerwer.setEnabled(false);
                 }
             }
-		}
+        }
 
-        public void keyReleased(KeyEvent e){
-			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+        public void keyReleased(KeyEvent e) {
+            if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                 if (zadanie.ifEqualsGoNext(input.getText())) {
 
                     panelGracza[0].progress.setValue(zadanie.getProgress());
@@ -201,8 +205,8 @@ public class Klient extends JFrame {
                         input.setText("");
                     }
                 }
-			}
-		}
+            }
+        }
     }
 
     public void startGame() {
@@ -213,7 +217,17 @@ public class Klient extends JFrame {
         input.requestFocus();
     }
 
+    public void tempFunction() {
+
+        ArrayList<File> files = ObslugaPlikow.getFiles();
+        if (!files.isEmpty())
+            for (File file : files)
+                System.out.println(file.getName());
+        else
+            System.out.println("Nie ma plikow z tekstami");
+    }
+
     public static void main(String[] args) {
-        new Klient();
+        new KlientGUI();
     }
 }
