@@ -1,0 +1,1 @@
+Serwer jest to program świadczący usługi na rzecz innych programów, zazwyczaj korzystających z innych komputerów połączonych w sieć. - wikipedia
