@@ -9,8 +9,6 @@ import javax.swing.border.EmptyBorder;
 
 public class KlientGUI extends JFrame {
 
-    private static final String VERSION = "v0.4";
-
     private JTextArea text, logs;
     private JPanel panelGraczy, panelGry, panelBoczny, panelLogowania, panelDodatkowy;
     private JTextField host, input;
@@ -20,20 +18,23 @@ public class KlientGUI extends JFrame {
     private String hostname = "localhost:2345";
     private boolean isConnected = false;
 
-    private PanelPlayer[] panelGracza = new PanelPlayer[6];
+    private PanelPlayer[] panelGracza = new PanelPlayer[Config.MAX_PLAYERS];
 
     private Zadanie zadanie;
 
+    private Klient watekKlienta;
+
     public KlientGUI() {
-        super("Klient " + VERSION);
+        super("Klient " + Config.VERSION);
         setSize(880, 600);
         setMinimumSize(new Dimension(640, 600));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         // -- panel z graczami
-        panelGraczy = new JPanel(new GridLayout(6, 0));
-        for (int i = 0; i < 6; i++) {
+        panelGraczy = new JPanel(new GridLayout(Config.MAX_PLAYERS, 0));
+        //panelGraczy.setLayout(new GridLayout(6, 0));
+        for (int i = 0; i < Config.MAX_PLAYERS; i++) {
             panelGracza[i] = new PanelPlayer(i);
             panelGracza[i].setPreferredSize(new Dimension(40, 40));
             panelGraczy.add(panelGracza[i]);
@@ -44,7 +45,7 @@ public class KlientGUI extends JFrame {
         panelGry.setBackground(Color.LIGHT_GRAY);
 
         text = new JTextArea();
-        text.setText("zadanie.getText()");
+        text.setText("");
         text.setWrapStyleWord(true);
         text.setLineWrap(true);
         text.setOpaque(false);
@@ -62,7 +63,7 @@ public class KlientGUI extends JFrame {
         input.addKeyListener(obsluga);
 
         logs = new JTextArea();
-        logs.setText("Logi aplikacji");
+        logs.setText("");
         logs.setWrapStyleWord(true);
         logs.setLineWrap(true);
         logs.setOpaque(false);
@@ -86,7 +87,7 @@ public class KlientGUI extends JFrame {
         lbStatus.setForeground(Color.RED);
 
         panelLogowania.add(new JLabel("Serwer (host:port)"));
-        panelLogowania.add(new JLabel(VERSION, SwingConstants.RIGHT));
+        panelLogowania.add(new JLabel(Config.VERSION, SwingConstants.RIGHT));
         panelLogowania.add(host);
         panelLogowania.add(lbStatus);
 
@@ -175,19 +176,18 @@ public class KlientGUI extends JFrame {
                 } else
                     btnReady.setText("Gotowy");
             } else if (e.getSource() == btnLogon) {
-                isConnected = !isConnected;
-                if (isConnected) {
+                if (!isConnected) {
+                    watekKlienta = new Klient();
+                    watekKlienta.start();
+
+                    isConnected = true;
                     btnLogon.setText("Rozlacz");
                     lbStatus.setText("Status: polaczony");
                     lbStatus.setForeground(Color.decode("#006600"));
                     btnReady.setEnabled(true);
                     btnAddToSerwer.setEnabled(true);
                 } else {
-                    btnLogon.setText("Polacz");
-                    lbStatus.setText("Status: niepolaczony");
-                    lbStatus.setForeground(Color.RED);
-                    btnReady.setEnabled(false);
-                    btnAddToSerwer.setEnabled(false);
+                    watekKlienta.executeCommand(Command.LOGOUT_COMMAND);
                 }
             }
         }
@@ -205,6 +205,88 @@ public class KlientGUI extends JFrame {
                         text.replaceRange(null, 0, input.getText().length());
                         input.setText("");
                     }
+                }
+            }
+        }
+    }
+
+    private class Klient extends Thread {
+
+        private Socket socket;
+        private BufferedReader receiveFromSerwer;
+        private PrintWriter sendToSerwer;
+        private int playerNumer = -1;
+
+        private void executeCommand(Command command) {
+            executeCommand(command, "");
+        }
+
+        private void executeCommand(Command command, String parameter) {
+            sendToSerwer.println(command + Config.DELIMITER + parameter);
+        }
+
+        public void run() {
+            try {
+                String[] hostParameters = host.getText().split(":", 2);
+                socket = new Socket(hostParameters[0], new Integer(hostParameters[1]));
+                receiveFromSerwer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                sendToSerwer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+
+                executeCommand(Command.LOGIN_COMMAND);
+
+                String command = null;
+                while (isConnected) {
+
+                    command = receiveFromSerwer.readLine();
+                    if (command != null) {
+
+                        String[] commandParameters = command.split(Config.DELIMITER, 2);
+                        //System.out.println("FROM SERWER\n[1]: " + commandParameters[0] + "\n[2]: " + commandParameters[1] + "\n");
+
+                        if (commandParameters[1] != null && !commandParameters[1].equals(""))
+                            addLog(commandParameters[1]);
+
+                        Command protokol = Command.valueOf(commandParameters[0]);
+                        switch (protokol) {
+
+                        case LOGOUT_COMMAND:
+                            isConnected = false;
+                            btnLogon.setText("Polacz");
+                            lbStatus.setText("Status: niepolaczony");
+                            lbStatus.setForeground(Color.RED);
+                            btnReady.setEnabled(false);
+                            btnAddToSerwer.setEnabled(false);
+                            break;
+
+                        case LOGIN_COMMAND:
+                            String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znakow): ");
+                            nick = nick.trim().toUpperCase();
+                            if (nick.equals("")) {
+                                executeCommand(Command.LOGOUT_COMMAND);
+                                addLog("Niepoprawny nick, zostales rozlaczony.");
+                            } else {
+                                if (nick.length() > 6)
+                                    nick = nick.substring(0, 6);
+
+                                panelGracza[0].join(nick);
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch (UnknownHostException e) {
+                addLog("Blad polaczenia!");
+            } catch (IOException e) {
+                addLog(e.toString());
+            } catch (NullPointerException e) { //
+                addLog(e.toString());
+            } finally {
+                try {
+                    receiveFromSerwer.close();
+                    sendToSerwer.close();
+                    socket.close();
+                } catch (IOException e) {
+                } catch (NullPointerException e) { // 
                 }
             }
         }
@@ -235,6 +317,11 @@ public class KlientGUI extends JFrame {
             input.requestFocus();
         } else
             System.out.println("Nie ma plikow z tekstami");
+    }
+
+    private void addLog(String content) {
+        logs.append(content + "\n");
+        logs.setCaretPosition(logs.getDocument().getLength());
     }
 
     public static void main(String[] args) {
