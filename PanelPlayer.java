@@ -21,7 +21,6 @@ public class PanelPlayer extends JPanel {
     JButton[] btns = new JButton[3];
 
     boolean isReady = false;
-    String nick = "Player".toUpperCase();
     int numberOfWins = 0;
     int actionPoints = 0;
 
@@ -40,7 +39,7 @@ public class PanelPlayer extends JPanel {
         panelWithNick = new JPanel();
         panelWithNick.setBackground(Color.decode("#ffcccc"));
 
-        labelWithNick = new JLabel(nick + (idColor + 1), SwingConstants.CENTER);
+        labelWithNick = new JLabel("---", SwingConstants.CENTER);
         labelWithNick.setFont(new Font("Consolas", Font.PLAIN, 22));
         labelWithNick.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
 
@@ -102,7 +101,6 @@ public class PanelPlayer extends JPanel {
     }
 
     public void join(String nick) {
-        this.nick = nick;
         this.labelWithNick.setText(nick);
     }
 }

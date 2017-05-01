@@ -188,7 +188,7 @@ public class KlientGUI extends JFrame {
                     btnAddToSerwer.setEnabled(true);
                 } else {
                     try {
-                        watekKlienta.sendToSerwer.writeObject(new Packet(Command.LOGOUT_COMMAND));
+                        watekKlienta.sendToSerwer.writeObject(new Packet(Command.LOGOUT));
                         watekKlienta.sendToSerwer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
@@ -220,7 +220,6 @@ public class KlientGUI extends JFrame {
         private Socket socket;
         private ObjectInputStream receiveFromSerwer;
         private ObjectOutputStream sendToSerwer;
-        private int playerNumer = -1;
 
         public void run() {
             try {
@@ -229,7 +228,7 @@ public class KlientGUI extends JFrame {
                 sendToSerwer = new ObjectOutputStream(socket.getOutputStream());
                 receiveFromSerwer = new ObjectInputStream(socket.getInputStream());
 
-                sendToSerwer.writeObject(new Packet(Command.LOGIN_COMMAND));
+                sendToSerwer.writeObject(new Packet(Command.LOGIN_REQUEST));
                 sendToSerwer.flush();
 
                 Packet packet = null;
@@ -242,21 +241,22 @@ public class KlientGUI extends JFrame {
                     if (packet != null) {
                         Command command = packet.getCommand();
                         switch (command) {
-                            case LOGIN_COMMAND:
+                            case LOGIN_RESPONSE:
                                 String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znakow): ");
                                 nick = nick.trim().toUpperCase();
                                 if (nick.equals("")) {
-                                    sendToSerwer.writeObject(new Packet(Command.LOGOUT_COMMAND));
+                                    sendToSerwer.writeObject(new Packet(Command.LOGOUT));
                                     sendToSerwer.flush();
                                     addLog("Niepoprawny nick, zostales rozlaczony.");
                                 } else {
                                     if (nick.length() > 6)
                                         nick = nick.substring(0, 6);
 
-                                    panelGracza[0].join(nick);
+                                    sendToSerwer.writeObject(new Packet(Command.NICK_SET, nick));
+                                    sendToSerwer.flush();
                                 }
                                 break;
-                            case LOGOUT_COMMAND:
+                            case LOGOUT:
                             
                                 String message = packet.getParameter();
                                 if (message != null && !message.isEmpty())
@@ -268,6 +268,25 @@ public class KlientGUI extends JFrame {
                                 lbStatus.setForeground(Color.RED);
                                 btnReady.setEnabled(false);
                                 btnAddToSerwer.setEnabled(false);
+                                for (PanelPlayer pp : panelGracza) {
+                                    pp.join("---");
+                                }
+                                break;
+                            case LOGOUT_PLAYER_NOTIFY:
+
+                                String playerName = packet.getParameter();
+                                int playerId = packet.getPlayerId();
+
+                                if (playerId != -1)
+                                    panelGracza[playerId].join(playerName);
+
+                                break;
+                            case UPDATE_PLAYERS_LIST:
+
+                                PacketWithPlayersList extendedPacket = (PacketWithPlayersList)packet;
+                                for (Player player : extendedPacket.getPlayers()) {
+                                    panelGracza[player.getId()].join(player.getNick());
+                                }
                                 break;
                         }
                     }

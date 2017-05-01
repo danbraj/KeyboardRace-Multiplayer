@@ -93,7 +93,7 @@ public class SerwerGUI extends JFrame {
                 for (Connection client : clients) {
                     if (client != null) {
                         try {
-                            client.sendToClient.writeObject(new Packet(Command.LOGOUT_COMMAND, "Serwer zostal wylaczony."));
+                            client.sendToClient.writeObject(new Packet(Command.LOGOUT, client.player.getId(), "Serwer zostal wylaczony."));
                             client.sendToClient.flush();
                             client.socket.close();
                         } catch (IOException e) {
@@ -136,12 +136,10 @@ public class SerwerGUI extends JFrame {
         private Socket socket;
         private ObjectInputStream receiveFromClient;
         private ObjectOutputStream sendToClient;
-        private String nick;
-        private int connectionId = -1;
-        private boolean isConnected = false;
+        private Player player;
+        private boolean isConnected = true;
 
         public Connection(Socket socket) {
-            this.isConnected = true;
             this.socket = socket;
         }
 
@@ -163,14 +161,15 @@ public class SerwerGUI extends JFrame {
                     if (packet != null) {
                         Command command = packet.getCommand();
                         switch (command) {
-                            case LOGIN_COMMAND:
+                            case LOGIN_REQUEST:
                                 synchronized (clients) {
                                     boolean isFreeSlots = false;
 
                                     for (int i = 0, k = clients.size(); i < k; i++) {
                                         if (clients.get(i) == null) {
                                             clients.set(i, this);
-                                            this.connectionId = i;
+                                            player = new Player();
+                                            player.setId(i);
                                             isFreeSlots = true;
                                             break;
                                         }
@@ -180,31 +179,50 @@ public class SerwerGUI extends JFrame {
                                             + " probuje sie polaczyc.\n");
 
                                     if (isFreeSlots) {
-                                        sendToClient.writeObject(new Packet(Command.LOGIN_COMMAND));
+                                        sendToClient.writeObject(new Packet(Command.LOGIN_RESPONSE));
                                         sendToClient.flush();
                                         addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                                + " zostal polaczony (SLOT " + this.connectionId + ").\n");
-
-                                        // for (Connection client : clients) {
-                                        //     client.executeCommand(Command.PLAYERS_LIST_COMMAND);
-                                        // }
+                                                + " zostal polaczony (SLOT " + player.getId() + ").\n");
                                     } else {
-                                        sendToClient.writeObject(new Packet(Command.LOGOUT_COMMAND, "Niestey nie ma wolnych miejsc :<"));
+                                        sendToClient.writeObject(new Packet(Command.LOGOUT, "Niestey nie ma wolnych miejsc :<"));
                                         sendToClient.flush();
                                         addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
                                                 + " zostal rozlaczony, z powodu braku wolnego miejsca.\n");
                                     }
                                 }
                                 break;
-                            case LOGOUT_COMMAND:
-                                sendToClient.writeObject(new Packet(Command.LOGOUT_COMMAND));
+                            case LOGOUT:
+                                for (Connection client : clients) {
+                                    if (client != null && client != this)
+                                        client.sendToClient.writeObject(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getId(), "---"));
+                                }
+
                                 addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                        + " zostal rozlaczony (SLOT " + this.connectionId + ").\n");
+                                        + " zostal rozlaczony (SLOT " + player.getId() + ").\n");
+
+                                sendToClient.writeObject(new Packet(Command.LOGOUT, player.getId(), ""));
+                                sendToClient.flush();
 
                                 synchronized (clients) {
-                                    clients.set(this.connectionId, null);
+                                    clients.set(player.getId(), null);
                                 }
                                 this.isConnected = false;
+                                break;
+                            case NICK_SET:
+                                player.setNick(packet.getParameter());
+
+                                ArrayList<Player> players = new ArrayList<Player>(); // to improve
+                                for (Connection client : clients) {
+                                    if (client != null) {
+                                        players.add(client.player);
+                                    }
+                                }
+                                for (Connection client : clients) {
+                                    if (client != null) {
+                                        client.sendToClient.writeObject(new PacketWithPlayersList(players));
+                                        client.sendToClient.flush();
+                                    }
+                                }
                                 break;
                         }
                     }
