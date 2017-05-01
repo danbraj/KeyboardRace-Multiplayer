@@ -93,7 +93,8 @@ public class SerwerGUI extends JFrame {
                 for (Connection client : clients) {
                     if (client != null) {
                         try {
-                            client.executeCommand(Command.LOGOUT_COMMAND, "Serwer zostal wylaczony.");
+                            client.sendToClient.writeObject(new Packet(Command.LOGOUT_COMMAND, "Serwer zostal wylaczony."));
+                            client.sendToClient.flush();
                             client.socket.close();
                         } catch (IOException e) {
                         }
@@ -130,11 +131,11 @@ public class SerwerGUI extends JFrame {
         }
     }
 
-    private class Connection extends Thread {
+    protected class Connection extends Thread {
 
         private Socket socket;
-        private BufferedReader receiveFromClient;
-        private PrintWriter sendToClient;
+        private ObjectInputStream receiveFromClient;
+        private ObjectOutputStream sendToClient;
         private String nick;
         private int connectionId = -1;
         private boolean isConnected = false;
@@ -144,75 +145,67 @@ public class SerwerGUI extends JFrame {
             this.socket = socket;
         }
 
-        private void executeCommand(Command command) {
-            executeCommand(command, "");
-        }
-
-        private void executeCommand(Command command, String parameter) {
-            sendToClient.println(command + Config.DELIMITER + parameter);
-        }
-
         public void run() {
             try {
-                receiveFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                sendToClient = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+                sendToClient = new ObjectOutputStream(socket.getOutputStream()); // hint: http://stackoverflow.com/a/14111047
+                receiveFromClient = new ObjectInputStream(socket.getInputStream());
+                sendToClient.flush();
 
                 addLog("Na serwerze jest " + clients.size() + " wszystkich miejsc.\n");
 
-                String command = null;
+                Packet packet = null;
                 while (isConnected && isRunning) {
 
-                    command = receiveFromClient.readLine();
-                    if (command != null) {
+                    try {
+                        packet = (Packet)receiveFromClient.readObject();
+                    } catch (ClassNotFoundException ex) {}
 
-                        String[] commandParameters = command.split(Config.DELIMITER, 2);
-                        //System.out.println("FROM CLIENT(" + this.connectionId + ")\n[1]: " + commandParameters[0] + "\n[2]: "+ commandParameters[1] + "\n");
-                        Command protokol = Command.valueOf(commandParameters[0]);
-                        switch (protokol) {
+                    if (packet != null) {
+                        Command command = packet.getCommand();
+                        switch (command) {
+                            case LOGIN_COMMAND:
+                                synchronized (clients) {
+                                    boolean isFreeSlots = false;
 
-                        case LOGOUT_COMMAND:
-                            executeCommand(Command.LOGOUT_COMMAND);
-                            addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                    + " zostal rozlaczony (SLOT " + this.connectionId + ").\n");
+                                    for (int i = 0, k = clients.size(); i < k; i++) {
+                                        if (clients.get(i) == null) {
+                                            clients.set(i, this);
+                                            this.connectionId = i;
+                                            isFreeSlots = true;
+                                            break;
+                                        }
+                                    }
 
-                            synchronized (clients) {
-                                //clients.remove(this);
-                                clients.set(this.connectionId, null);
-                            }
-                            this.isConnected = false;
-                            break;
+                                    addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
+                                            + " probuje sie polaczyc.\n");
 
-                        case LOGIN_COMMAND:
-                            synchronized (clients) {
-                                boolean isFreeSlots = false;
+                                    if (isFreeSlots) {
+                                        sendToClient.writeObject(new Packet(Command.LOGIN_COMMAND));
+                                        sendToClient.flush();
+                                        addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
+                                                + " zostal polaczony (SLOT " + this.connectionId + ").\n");
 
-                                for (int i = 0, k = clients.size(); i < k; i++) {
-                                    if (clients.get(i) == null) {
-                                        clients.set(i, this);
-                                        this.connectionId = i;
-                                        isFreeSlots = true;
-                                        break;
+                                        // for (Connection client : clients) {
+                                        //     client.executeCommand(Command.PLAYERS_LIST_COMMAND);
+                                        // }
+                                    } else {
+                                        sendToClient.writeObject(new Packet(Command.LOGOUT_COMMAND, "Niestey nie ma wolnych miejsc :<"));
+                                        sendToClient.flush();
+                                        addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
+                                                + " zostal rozlaczony, z powodu braku wolnego miejsca.\n");
                                     }
                                 }
-
+                                break;
+                            case LOGOUT_COMMAND:
+                                sendToClient.writeObject(new Packet(Command.LOGOUT_COMMAND));
                                 addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                        + " probuje sie polaczyc.\n");
+                                        + " zostal rozlaczony (SLOT " + this.connectionId + ").\n");
 
-                                if (isFreeSlots) {
-                                    executeCommand(Command.LOGIN_COMMAND);
-                                    addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                            + " zostal polaczony (SLOT " + this.connectionId + ").\n");
-
-                                    // for (Connection client : clients) {
-                                    //     client.executeCommand(Command.PLAYERS_LIST_COMMAND); //?
-                                    // }
-                                } else {
-                                    executeCommand(Command.LOGOUT_COMMAND, "Niestey nie ma wolnych miejsc :<");
-                                    addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                            + " zostal rozlaczony, z powodu braku wolnego miejsca.\n");
+                                synchronized (clients) {
+                                    clients.set(this.connectionId, null);
                                 }
-                            }
-                            break;
+                                this.isConnected = false;
+                                break;
                         }
                     }
                 }

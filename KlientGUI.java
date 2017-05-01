@@ -187,7 +187,12 @@ public class KlientGUI extends JFrame {
                     btnReady.setEnabled(true);
                     btnAddToSerwer.setEnabled(true);
                 } else {
-                    watekKlienta.executeCommand(Command.LOGOUT_COMMAND);
+                    try {
+                        watekKlienta.sendToSerwer.writeObject(new Packet(Command.LOGOUT_COMMAND));
+                        watekKlienta.sendToSerwer.flush();
+                    } catch (IOException ex) {
+                        addLog(ex.toString());
+                    }
                 }
             }
         }
@@ -213,64 +218,57 @@ public class KlientGUI extends JFrame {
     private class Klient extends Thread {
 
         private Socket socket;
-        private BufferedReader receiveFromSerwer;
-        private PrintWriter sendToSerwer;
+        private ObjectInputStream receiveFromSerwer;
+        private ObjectOutputStream sendToSerwer;
         private int playerNumer = -1;
-
-        private void executeCommand(Command command) {
-            executeCommand(command, "");
-        }
-
-        private void executeCommand(Command command, String parameter) {
-            sendToSerwer.println(command + Config.DELIMITER + parameter);
-        }
 
         public void run() {
             try {
                 String[] hostParameters = host.getText().split(":", 2);
                 socket = new Socket(hostParameters[0], new Integer(hostParameters[1]));
-                receiveFromSerwer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                sendToSerwer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+                sendToSerwer = new ObjectOutputStream(socket.getOutputStream());
+                receiveFromSerwer = new ObjectInputStream(socket.getInputStream());
 
-                executeCommand(Command.LOGIN_COMMAND);
+                sendToSerwer.writeObject(new Packet(Command.LOGIN_COMMAND));
+                sendToSerwer.flush();
 
-                String command = null;
+                Packet packet = null;
                 while (isConnected) {
 
-                    command = receiveFromSerwer.readLine();
-                    if (command != null) {
+                    try {
+                        packet = (Packet)receiveFromSerwer.readObject();
+                    } catch (ClassNotFoundException ex) {}
+                    
+                    if (packet != null) {
+                        Command command = packet.getCommand();
+                        switch (command) {
+                            case LOGIN_COMMAND:
+                                String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znakow): ");
+                                nick = nick.trim().toUpperCase();
+                                if (nick.equals("")) {
+                                    sendToSerwer.writeObject(new Packet(Command.LOGOUT_COMMAND));
+                                    sendToSerwer.flush();
+                                    addLog("Niepoprawny nick, zostales rozlaczony.");
+                                } else {
+                                    if (nick.length() > 6)
+                                        nick = nick.substring(0, 6);
 
-                        String[] commandParameters = command.split(Config.DELIMITER, 2);
-                        //System.out.println("FROM SERWER\n[1]: " + commandParameters[0] + "\n[2]: " + commandParameters[1] + "\n");
-
-                        if (commandParameters[1] != null && !commandParameters[1].equals(""))
-                            addLog(commandParameters[1]);
-
-                        Command protokol = Command.valueOf(commandParameters[0]);
-                        switch (protokol) {
-
-                        case LOGOUT_COMMAND:
-                            isConnected = false;
-                            btnLogon.setText("Polacz");
-                            lbStatus.setText("Status: niepolaczony");
-                            lbStatus.setForeground(Color.RED);
-                            btnReady.setEnabled(false);
-                            btnAddToSerwer.setEnabled(false);
-                            break;
-
-                        case LOGIN_COMMAND:
-                            String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znakow): ");
-                            nick = nick.trim().toUpperCase();
-                            if (nick.equals("")) {
-                                executeCommand(Command.LOGOUT_COMMAND);
-                                addLog("Niepoprawny nick, zostales rozlaczony.");
-                            } else {
-                                if (nick.length() > 6)
-                                    nick = nick.substring(0, 6);
-
-                                panelGracza[0].join(nick);
-                            }
-                            break;
+                                    panelGracza[0].join(nick);
+                                }
+                                break;
+                            case LOGOUT_COMMAND:
+                            
+                                String message = packet.getParameter();
+                                if (message != null && !message.isEmpty())
+                                    addLog(message);
+                                    
+                                isConnected = false;
+                                btnLogon.setText("Polacz");
+                                lbStatus.setText("Status: niepolaczony");
+                                lbStatus.setForeground(Color.RED);
+                                btnReady.setEnabled(false);
+                                btnAddToSerwer.setEnabled(false);
+                                break;
                         }
                     }
                 }
