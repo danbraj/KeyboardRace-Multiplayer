@@ -98,7 +98,7 @@ public class KlientGUI extends JFrame {
         btnAddToSerwer = new JButton("Dodaj tekst do gry");
         btnAddToSerwer.addActionListener(obsluga);
         btnAddToSerwer.setEnabled(false);
-        btnReady = new JButton("Gotowy");
+        btnReady = new JButton("Gotowosc");
         btnReady.addActionListener(obsluga);
         btnReady.setEnabled(false);
         btnLogon = new JButton("Polacz");
@@ -169,12 +169,12 @@ public class KlientGUI extends JFrame {
             if (e.getSource() == btnAddToSerwer) {
                 display();
             } else if (e.getSource() == btnReady) {
-                panelGracza[0].changeReady();
-                if (panelGracza[0].getReady()) {
-                    btnReady.setText("Niegotowy");
-                    startGame();
-                } else
-                    btnReady.setText("Gotowy");
+                try {
+                    watekKlienta.sendToSerwer.writeObject(new Packet(Command.CHANGE_READY));
+                    watekKlienta.sendToSerwer.flush();
+                } catch (IOException ex) {
+                    addLog(ex.toString());
+                }
             } else if (e.getSource() == btnLogon) {
                 if (!isConnected) {
                     watekKlienta = new Klient();
@@ -184,7 +184,6 @@ public class KlientGUI extends JFrame {
                     btnLogon.setText("Rozlacz");
                     lbStatus.setText("Status: polaczony");
                     lbStatus.setForeground(Color.decode("#006600"));
-                    btnReady.setEnabled(true);
                     btnAddToSerwer.setEnabled(true);
                 } else {
                     try {
@@ -254,6 +253,7 @@ public class KlientGUI extends JFrame {
 
                                     sendToSerwer.writeObject(new Packet(Command.NICK_SET, nick));
                                     sendToSerwer.flush();
+                                    btnReady.setEnabled(true);
                                 }
                                 break;
                             case LOGOUT:
@@ -287,6 +287,14 @@ public class KlientGUI extends JFrame {
                                 for (Player player : extendedPacket.getPlayers()) {
                                     panelGracza[player.getId()].join(player.getNick());
                                 }
+                                break;
+                            
+                            case CHANGE_READY:
+
+                                int senderId = packet.getPlayerId();
+                                boolean isReady = packet.getExtra();
+
+                                panelGracza[senderId].setReadiness(isReady);
                                 break;
                         }
                     }

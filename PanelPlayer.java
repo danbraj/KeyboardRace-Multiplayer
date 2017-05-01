@@ -91,6 +91,10 @@ public class PanelPlayer extends JPanel {
         }
     }
 
+    public void setReadiness(boolean isReady) {
+        panelWithNick.setBackground(Color.decode(isReady ? "#ccffcc" : "#ffcccc"));
+    }
+    
     public void changeReady() {
         this.isReady = !this.isReady;
         panelWithNick.setBackground(Color.decode(this.isReady ? "#ccffcc" : "#ffcccc"));

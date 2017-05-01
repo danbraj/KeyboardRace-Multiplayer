@@ -22,4 +22,9 @@ class Player implements Serializable {
     public String getNick() {
         return this.nick;
     }
+
+    public boolean toggleAndGetReady() {
+        this.isReady = !this.isReady;
+        return this.isReady;
+    }
 }

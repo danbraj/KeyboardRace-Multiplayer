@@ -224,6 +224,16 @@ public class SerwerGUI extends JFrame {
                                     }
                                 }
                                 break;
+                            case CHANGE_READY:
+                                boolean isReady = player.toggleAndGetReady();
+
+                                for (Connection client : clients) {
+                                    if (client != null) {
+                                        client.sendToClient.writeObject(new Packet(Command.CHANGE_READY, player.getId(), isReady));
+                                        client.sendToClient.flush();
+                                    }
+                                }
+                                break;
                         }
                     }
                 }
