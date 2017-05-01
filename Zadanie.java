@@ -1,4 +1,6 @@
-class Zadanie {
+import java.io.Serializable;
+
+class Zadanie implements Serializable {
 
     private String text;
     private String[] words;
@@ -25,8 +27,8 @@ class Zadanie {
             if (word.equals(this.words[this.counter] + " ")) {
                 if (this.counter == this.wordsCount - 1)
                     Zadanie.SUCCESS = true;
-                //else 
-                    this.counter++;
+                    
+                this.counter++;
                 
                 this.progress = (int)Math.floor(
                     ((double)this.counter / this.wordsCount) * 100

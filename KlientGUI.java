@@ -24,6 +24,8 @@ public class KlientGUI extends JFrame {
 
     private Klient watekKlienta;
 
+    private int idPlayer = -1;
+
     public KlientGUI() {
         super("Klient " + Config.VERSION);
         setSize(880, 600);
@@ -200,7 +202,7 @@ public class KlientGUI extends JFrame {
             if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                 if (zadanie.ifEqualsGoNext(input.getText())) {
 
-                    panelGracza[0].progress.setValue(zadanie.getProgress());
+                    panelGracza[idPlayer].progress.setValue(zadanie.getProgress());
 
                     if (Zadanie.SUCCESS) {
                         System.out.println("Zwyciestwo!");
@@ -253,6 +255,8 @@ public class KlientGUI extends JFrame {
 
                                     sendToSerwer.writeObject(new Packet(Command.NICK_SET, nick));
                                     sendToSerwer.flush();
+
+                                    idPlayer = packet.getPlayerId();
                                     btnReady.setEnabled(true);
                                 }
                                 break;
@@ -296,6 +300,14 @@ public class KlientGUI extends JFrame {
 
                                 panelGracza[senderId].setReadiness(isReady);
                                 break;
+                            case START_GAME:
+
+                                PacketWithTask task = (PacketWithTask)packet;
+                                zadanie = task.getZadanie();
+
+                                text.setText(zadanie.getText());
+                                input.setEnabled(true);
+                                input.requestFocus();
                         }
                     }
                 }
@@ -315,33 +327,6 @@ public class KlientGUI extends JFrame {
                 }
             }
         }
-    }
-
-    public void startGame() {
-
-        ArrayList<File> files = ObslugaPlikow.getFiles();
-        if (!files.isEmpty()) {
-            // for (File file : files)
-            //     System.out.println(file.getName());
-            int filesCount = files.size();
-            int randomIndex = new Random().nextInt(filesCount);
-            File file = files.get(randomIndex);
-
-            System.out.println("Zostal wylosowany " + randomIndex + " : " + file.getName());
-
-            try {
-                String taskContent = new Scanner(file, "UTF-8").useDelimiter("\\A").next();
-                zadanie = new Zadanie(taskContent);
-            } catch (IOException e) {
-                System.out.println("Blad odczytu pliku.");
-                System.exit(2);
-            }
-
-            text.setText(zadanie.getText());
-            input.setEnabled(true);
-            input.requestFocus();
-        } else
-            System.out.println("Nie ma plikow z tekstami");
     }
 
     private void addLog(String content) {

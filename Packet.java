@@ -58,3 +58,16 @@ class PacketWithPlayersList extends Packet {
         return this.players;
     }
 }
+
+class PacketWithTask extends Packet {
+    Zadanie zadanie;
+
+    public PacketWithTask(Zadanie zadanie) {
+        super(Command.START_GAME);
+        this.zadanie = zadanie;
+    }
+
+    public Zadanie getZadanie() {
+        return this.zadanie;
+    }
+}

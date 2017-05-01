@@ -179,7 +179,7 @@ public class SerwerGUI extends JFrame {
                                             + " probuje sie polaczyc.\n");
 
                                     if (isFreeSlots) {
-                                        sendToClient.writeObject(new Packet(Command.LOGIN_RESPONSE));
+                                        sendToClient.writeObject(new Packet(Command.LOGIN_RESPONSE, player.getId(), ""));
                                         sendToClient.flush();
                                         addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
                                                 + " zostal polaczony (SLOT " + player.getId() + ").\n");
@@ -227,10 +227,24 @@ public class SerwerGUI extends JFrame {
                             case CHANGE_READY:
                                 boolean isReady = player.toggleAndGetReady();
 
+                                boolean isReadyAll = true;
                                 for (Connection client : clients) {
                                     if (client != null) {
+                                        if (isReadyAll) 
+                                            if (!client.player.isReady)
+                                                isReadyAll = false;
                                         client.sendToClient.writeObject(new Packet(Command.CHANGE_READY, player.getId(), isReady));
                                         client.sendToClient.flush();
+                                    }
+                                }
+
+                                if (isReadyAll) {
+                                    Zadanie zadanie = drawTask(); 
+                                    for (Connection client : clients) {
+                                        if (client != null) {
+                                            client.sendToClient.writeObject(new PacketWithTask(zadanie));
+                                            client.sendToClient.flush();
+                                        }
                                     }
                                 }
                                 break;
@@ -248,6 +262,28 @@ public class SerwerGUI extends JFrame {
                 }
             }
         }
+    }
+
+    private Zadanie drawTask() {
+        ArrayList<File> files = ObslugaPlikow.getFiles();
+        if (!files.isEmpty()) {
+            int filesCount = files.size();
+            int randomIndex = new Random().nextInt(filesCount);
+            File file = files.get(randomIndex);
+
+            addLog("Zostal wylosowany " + randomIndex + " : " + file.getName() + "\n");
+
+            try {
+                String taskContent = new Scanner(file, "UTF-8").useDelimiter("\\A").next();
+                return new Zadanie(taskContent);
+            } catch (IOException e) {
+                addLog("Blad odczytu pliku.\n");
+                System.exit(2);
+            }
+        } else
+            addLog("Nie ma plikow z tekstami\n");
+
+        return null;
     }
 
     private void addLog(String content) {

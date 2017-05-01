@@ -6,5 +6,6 @@ public enum Command {
     LOGOUT,
     UPDATE_PLAYERS_LIST,
     LOGOUT_PLAYER_NOTIFY,
-    CHANGE_READY
+    CHANGE_READY,
+    START_GAME
 }
