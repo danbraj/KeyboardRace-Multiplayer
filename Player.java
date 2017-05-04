@@ -1,10 +1,12 @@
 import java.io.Serializable;
 
 class Player implements Serializable {
+
     int idPlayer = -1;
-    String nick = "---";
+    String nick = "player";
     boolean isReady = false;
-    int numberOfWins = 0;
+    boolean isFinished = false;
+    int points = 0;
     int actionPoints = 0;
 
     public void setId(int id) {
@@ -26,5 +28,9 @@ class Player implements Serializable {
     public boolean toggleAndGetReady() {
         this.isReady = !this.isReady;
         return this.isReady;
+    }
+
+    public void setUnready() {
+        this.isReady = false;
     }
 }

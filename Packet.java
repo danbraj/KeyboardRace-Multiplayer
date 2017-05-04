@@ -7,7 +7,8 @@ class Packet implements Serializable {
     String parameter;
     int senderId = -1;
     boolean extra;
-    
+    int progress;
+
     public Packet(Command command) {
         this.command = command;
     }
@@ -29,6 +30,17 @@ class Packet implements Serializable {
         this.extra = extra;
     }
 
+    public Packet(Command command, int senderId, int progress) {
+        this.command = command;
+        this.senderId = senderId;
+        this.progress = progress;
+    }
+
+    public Packet(Command command, int senderId) {
+        this.command = command;
+        this.senderId = senderId;
+    }
+
     public Command getCommand() {
         return this.command;
     }
@@ -44,6 +56,19 @@ class Packet implements Serializable {
     public boolean getExtra() {
         return this.extra;
     }
+
+    public int getProgress() {
+        return this.progress;
+    }
+}
+
+class PacketWithPlayer extends Packet {
+    Player player;
+
+    public PacketWithPlayer(Command command, Player player, String parameter) {
+        super(command, parameter);
+        this.player = player;
+    }
 }
 
 class PacketWithPlayersList extends Packet {
@@ -51,6 +76,11 @@ class PacketWithPlayersList extends Packet {
 
     public PacketWithPlayersList(ArrayList<Player> players) {
         super(Command.UPDATE_PLAYERS_LIST);
+        this.players = players;
+    }
+
+    public PacketWithPlayersList(Command command, ArrayList<Player> players) {
+        super(command);
         this.players = players;
     }
 
