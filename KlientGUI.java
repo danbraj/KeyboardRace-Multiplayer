@@ -23,7 +23,7 @@ public class KlientGUI extends JFrame {
     private Zadanie zadanie;
     private Klient client;
 
-    private int idPlayer;
+    private int playerId;
 
     public KlientGUI() {
         super("Klient " + Consts.VERSION);
@@ -211,11 +211,10 @@ public class KlientGUI extends JFrame {
             if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                 if (zadanie.ifEqualsGoNext(input.getText())) {
 
-                    panelGracza[idPlayer].progress.setValue(zadanie.getProgress());
+                    panelGracza[playerId].progress.setValue(zadanie.getProgress());
 
                     try {
-                        client.sendToSerwer
-                                .writeObject(new Packet(Command.PROGRESS, idPlayer, zadanie.getProgress()));
+                        client.sendToSerwer.writeObject(new Packet(Command.PROGRESS, playerId, zadanie.getProgress()));
                         client.sendToSerwer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
@@ -224,7 +223,7 @@ public class KlientGUI extends JFrame {
                     if (zadanie.isSuccess) {
                         input.setEnabled(false);
                         try {
-                            client.sendToSerwer.writeObject(new Packet(Command.WIN, idPlayer, ""));
+                            client.sendToSerwer.writeObject(new Packet(Command.WIN, playerId));
                             client.sendToSerwer.flush();
                         } catch (IOException ex) {
                             addLog(ex.toString());
@@ -261,7 +260,7 @@ public class KlientGUI extends JFrame {
             btnLogon.setText("Polacz");
             lbStatus.setText("Status: niepolaczony");
             lbStatus.setForeground(Color.RED);
-            
+
             for (PanelPlayer pp : panelGracza) {
                 pp.leave();
                 pp.progress.setValue(0);
@@ -310,14 +309,14 @@ public class KlientGUI extends JFrame {
                                         nick = nick.substring(0, 6);
 
                                     sendToSerwer.writeObject(new Packet(Command.NICK_SET, nick));
-                                    idPlayer = packet.getPlayerId();
+                                    playerId = packet.getPlayerId();
                                     btnReady.setEnabled(true);
                                 }
 
                             } else if (command == Command.LOGOUT) {
 
                                 // ustawienia ui clienta po wylogowaniu
-                                String message = packet.getParameter();
+                                String message = packet.getString();
                                 if (message != null && !message.isEmpty())
                                     addLog(message);
 
@@ -328,9 +327,11 @@ public class KlientGUI extends JFrame {
 
                                 // ustawienia ui panela gracza, który się wylogował
                                 int playerId = packet.getPlayerId();
-                                boolean isGameContinue = packet.getExtra();
-                                if (isGameContinue) {
-                                    addLog("Gracz " + panelGracza[playerId].labelWithNick.getText() + " uciekl!");
+
+                                status = packet.getBool() ? status | Consts.STARTED : status & ~Consts.STARTED;
+                                if ((status & Consts.STARTED) == Consts.STARTED) {
+
+                                    addLog("Gracz " + panelGracza[playerId].getNick() + " uciekl!");
 
                                     btnLogon.setEnabled(true);
                                     btnReady.setEnabled(true);
@@ -343,30 +344,26 @@ public class KlientGUI extends JFrame {
                                     input.setText("");
                                     text.setText("");
                                 }
-
-                                if (playerId != -1)
-                                    panelGracza[playerId].join("-");
+                                panelGracza[playerId].join("-");
+                                panelGracza[playerId].progress.setValue(0);
 
                             } else if (command == Command.UPDATE_PLAYERS_LIST) {
 
                                 // wczytanie nazw graczy do paneli
                                 ExtendedPacket extendedPacket = (ExtendedPacket) packet;
-                                for (Player player : extendedPacket.getPlayers()) {
-                                    panelGracza[player.getId()].join(player.getNick());
-                                }
+                                for (Player player : extendedPacket.getPlayers())
+                                    panelGracza[player.getPlayerId()].join(player.getNick());
 
                             } else if (command == Command.CHANGE_READY) {
-                                
+
                                 // przełącznik koloru gotowości danego użytkownika
-                                int senderId = packet.getPlayerId();
-                                boolean isReady = packet.getExtra();
-                                panelGracza[senderId].setReadiness(isReady);
+                                panelGracza[packet.getPlayerId()].setReadiness(packet.getBool());
 
                             } else if (command == Command.START_GAME) {
 
                                 // rozpoczęcie gry
-                                ExtendedPacket task = (ExtendedPacket) packet;
-                                zadanie = task.getZadanie();
+                                ExtendedPacket extendedPacket = (ExtendedPacket) packet;
+                                zadanie = extendedPacket.getZadanie();
 
                                 btnReady.setEnabled(false);
                                 btnLogon.setEnabled(false);
@@ -378,20 +375,19 @@ public class KlientGUI extends JFrame {
                             } else if (command == Command.PROGRESS) {
 
                                 // zmiana wartości progresu danego użytkownika
-                                panelGracza[packet.getPlayerId()].progress.setValue(packet.getProgress());
+                                panelGracza[packet.getPlayerId()].progress.setValue(packet.getInt());
 
                             } else if (command == Command.WIN) {
 
+                                int senderId = packet.getPlayerId();
                                 // poinformowanie o ukończeniu zadania przez danego użytkownika
-                                panelGracza[packet.getPlayerId()].setPlace(packet.getProgress());
-                                addLog("Gracz " + panelGracza[packet.getPlayerId()].labelWithNick.getText()
-                                        + " juz skonczyl!");
+                                panelGracza[senderId].setPlace(packet.getInt());
+                                addLog("Gracz " + panelGracza[senderId].getNick() + " juz skonczyl!");
 
                             } else if (command == Command.SEND_TEXT_RESPONSE) {
 
                                 // odpowiedź serwera na prośbę o pozwolenie na przesłanie tekstu do serwera
-                                boolean isAllowed = packet.getExtra();
-                                if (isAllowed)
+                                if (packet.getBool())
                                     display();
                                 else
                                     addLog("Serwer odmowil zadanie o pozwolenia na przeslanie pliku.");
@@ -401,8 +397,9 @@ public class KlientGUI extends JFrame {
                                 // ogłoszenie wyników użytkowników
                                 String content = "Tablica wynikow:";
                                 int counter = 1;
-                                ExtendedPacket players = (ExtendedPacket) packet;
-                                for (Player player : players.getPlayers())
+                                ExtendedPacket extendedPacket = (ExtendedPacket) packet;
+
+                                for (Player player : extendedPacket.getPlayers())
                                     content += "\n" + (counter++) + ". " + player.nick;
 
                                 addLog(content);
@@ -424,7 +421,8 @@ public class KlientGUI extends JFrame {
             } catch (UnknownHostException e) {
                 addLog("Blad polaczenia!");
             } catch (IOException e) {
-                JOptionPane.showMessageDialog(null, "Prawdopodobnie serwer nie jest wlaczony.", "Blad", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Prawdopodobnie serwer nie jest wlaczony.", "Informacja",
+                        JOptionPane.ERROR_MESSAGE);
                 System.exit(1);
             } catch (NullPointerException e) {
                 addLog(e.toString());
@@ -529,9 +527,13 @@ public class KlientGUI extends JFrame {
         public void setReadiness(boolean isReady) {
             this.panelWithNick.setBackground(Color.decode(isReady ? "#ccffcc" : "#ffcccc"));
         }
-        
+
         public void join(String nick) {
             this.labelWithNick.setText(nick);
+        }
+
+        public String getNick() {
+            return this.labelWithNick.getText();
         }
 
         public void leave() {
@@ -552,11 +554,11 @@ public class KlientGUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
 
                 if (e.getSource() == btns[0]) {
-                    addLog(Command.DEBUFF_INVISIBILITY + "\nSender: " + idPlayer + "\nTarget: " + panelId);
+                    addLog(Command.DEBUFF_INVISIBILITY + "\nSender: " + playerId + "\nTarget: " + panelId);
                 } else if (e.getSource() == btns[1]) {
-                    addLog(Command.DEBUFF_REVERSE + "\nSender: " + idPlayer + "\nTarget: " + panelId);
+                    addLog(Command.DEBUFF_REVERSE + "\nSender: " + playerId + "\nTarget: " + panelId);
                 } else if (e.getSource() == btns[2]) {
-                    addLog(Command.DEBUFF_SHUFFLE + "\nSender: " + idPlayer + "\nTarget: " + panelId);
+                    addLog(Command.DEBUFF_SHUFFLE + "\nSender: " + playerId + "\nTarget: " + panelId);
                 }
             }
         }

@@ -24,7 +24,7 @@ public class SerwerGUI extends JFrame {
 
     private ArrayList<Player> leaderboard = new ArrayList<>(Consts.MAX_PLAYERS);
     private int place = 0;
-    private int playingPlayers = 0;
+    private int playersCount = 0;
 
     public SerwerGUI() {
 
@@ -144,8 +144,8 @@ public class SerwerGUI extends JFrame {
                 for (Connection client : clients) {
                     if (client != null) {
                         try {
-                            client.sendToClient.writeObject(
-                                    new Packet(Command.LOGOUT, client.player.getId(), "Serwer zostal wylaczony."));
+                            client.sendToClient.writeObject(new Packet(Command.LOGOUT, client.player.getPlayerId(),
+                                    "Serwer zostal wylaczony."));
                             client.sendToClient.flush();
                             client.receiveFromClient.close();
                             client.sendToClient.close();
@@ -214,9 +214,10 @@ public class SerwerGUI extends JFrame {
                             Command command = packet.getCommand();
                             if (command == Command.LOGIN_REQUEST) {
 
+                                String connectionIp = socket.getInetAddress().getHostAddress();
+
                                 if ((status & Consts.STARTED) != Consts.STARTED) {
 
-                                    String connectionIp = socket.getInetAddress().getHostAddress();
                                     boolean isFreeSlots = false;
 
                                     addLog("Uzytkownik " + connectionIp + " probuje sie polaczyc.");
@@ -230,9 +231,9 @@ public class SerwerGUI extends JFrame {
                                                 isFreeSlots = true;
 
                                                 sendToClient.writeObject(
-                                                        new Packet(Command.LOGIN_RESPONSE, player.getId()));
+                                                        new Packet(Command.LOGIN_RESPONSE, player.getPlayerId()));
                                                 addLog("Uzytkownik " + connectionIp + " zostal polaczony (SLOT "
-                                                        + player.getId() + ").");
+                                                        + player.getPlayerId() + ").");
                                                 break;
                                             }
                                         }
@@ -247,7 +248,7 @@ public class SerwerGUI extends JFrame {
                                 } else {
                                     sendToClient.writeObject(
                                             new Packet(Command.LOGOUT, "Niestety rozgrywka juz sie rozpoczela :<"));
-                                    addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
+                                    addLog("Uzytkownik " + connectionIp
                                             + " zostal rozlaczony, poniewaz rozgrywka juz sie rozpoczela.");
                                 }
 
@@ -256,26 +257,17 @@ public class SerwerGUI extends JFrame {
                                 // poinformowanie pozostałych użytkowników o wylogowującym się użytkowników
                                 for (Connection client : clients) {
                                     if (client != null && client != this)
-                                        client.sendToClient.writeObject(
-                                            new Packet(
-                                                Command.LOGOUT_PLAYER_NOTIFY,
-                                                player.getId(),
-                                                (status & Consts.STARTED) == Consts.STARTED
-                                            )
-                                        );
+                                        client.sendToClient.writeObject(new Packet(Command.LOGOUT_PLAYER_NOTIFY,
+                                                player.getPlayerId(), (status & Consts.STARTED) == Consts.STARTED));
                                 }
                                 // usunięcie użytkownika z listy użytkowników
-                                sendToClient.writeObject(new Packet(Command.LOGOUT, player.getId()));//
+                                sendToClient.writeObject(new Packet(Command.LOGOUT, player.getPlayerId()));//
                                 addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                        + " zostal rozlaczony (SLOT " + player.getId() + ").");
+                                        + " zostal rozlaczony (SLOT " + player.getPlayerId() + ").");
 
                                 this.isConnected = false;
                                 synchronized (clients) {
-                                    clients.set(player.getId(), null);
-                                }
-
-                                synchronized (leaderboard) {
-                                    leaderboard.clear();
+                                    clients.set(player.getPlayerId(), null);
                                 }
 
                                 // zatrzymanie rozgrywki, jeżeli ktoś wyszedł w trakcie gry
@@ -284,9 +276,9 @@ public class SerwerGUI extends JFrame {
 
                             } else if (command == Command.NICK_SET) {
 
-                                synchronized (clients) {
-                                    player.setNick(packet.getParameter());
+                                player.setNick(packet.getString());
 
+                                synchronized (clients) {
                                     ArrayList<Player> players = new ArrayList<Player>();
                                     for (Connection client : clients) {
                                         if (client != null) {
@@ -313,8 +305,8 @@ public class SerwerGUI extends JFrame {
                                         if (isReadyAll)
                                             if (!client.player.isReady)
                                                 isReadyAll = false;
-                                        client.sendToClient
-                                                .writeObject(new Packet(Command.CHANGE_READY, player.getId(), isReady));
+                                        client.sendToClient.writeObject(
+                                                new Packet(Command.CHANGE_READY, player.getPlayerId(), isReady));
                                     }
                                 }
 
@@ -322,14 +314,18 @@ public class SerwerGUI extends JFrame {
                                 if (isReadyAll) {
                                     status = status | Consts.STARTED;
 
+                                    synchronized (leaderboard) {
+                                        leaderboard.clear();
+                                    }
+
                                     // wylosowanie zadania oraz jego przydzielenie do użytkowników i tym samym start rozgrywki 
                                     Zadanie zadanie = randomizeTask();
                                     if (zadanie != null) {
                                         synchronized (clients) {
-                                            playingPlayers = 0;
+                                            playersCount = 0;
                                             for (Connection client : clients) {
                                                 if (client != null) {
-                                                    playingPlayers++;
+                                                    playersCount++;
                                                     client.sendToClient.writeObject(
                                                             new ExtendedPacket(Command.START_GAME, zadanie));
                                                     client.player.setUnready();
@@ -345,7 +341,7 @@ public class SerwerGUI extends JFrame {
 
                                 // poinformowanie użytkowników o zmieniającym się progresie
                                 int senderId = packet.getPlayerId();
-                                int progress = packet.getProgress();
+                                int progress = packet.getInt();
                                 for (Connection client : clients) {
                                     if (client != null)
                                         client.sendToClient
@@ -354,11 +350,8 @@ public class SerwerGUI extends JFrame {
 
                             } else if (command == Command.WIN) {
 
-                                // dodanie użytkownika, który skończył zadanie do listy 
                                 int winnerId = packet.getPlayerId();
-                                synchronized (leaderboard) {
-                                    leaderboard.add(player);
-                                }
+
                                 synchronized (clients) {
                                     place++;
                                     for (Connection client : clients) {
@@ -367,14 +360,21 @@ public class SerwerGUI extends JFrame {
                                     }
                                 }
 
+                                // dodanie użytkownika, który skończył zadanie do listy
+                                synchronized (leaderboard) {
+                                    leaderboard.add(player);
+                                }
+
                                 // jeżeli wszyscy ukończyli zadanie, następuje ogłoszenie wyników
-                                if (leaderboard.size() == playingPlayers) {
+                                if (leaderboard.size() == playersCount) {
                                     place = 0;
                                     status = status & ~Consts.STARTED;
-                                    for (Connection client : clients) {
-                                        if (client != null)
-                                            client.sendToClient
-                                                    .writeObject(new ExtendedPacket(Command.RESET, leaderboard));
+                                    synchronized (clients) {
+                                        for (Connection client : clients) {
+                                            if (client != null)
+                                                client.sendToClient
+                                                        .writeObject(new ExtendedPacket(Command.RESET, leaderboard));
+                                        }
                                     }
                                     leaderboard.clear();
                                 }
@@ -387,17 +387,17 @@ public class SerwerGUI extends JFrame {
                                         // jeżeli nie został osiągnięty limit tekstów w poczekalni to..
                                         if (tasksCount.get() > 0) {
                                             tasksCount.decrementAndGet();
-                                            sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, true));
+                                            sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, true));
                                         } else
-                                            sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, false));
+                                            sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, false));
                                     }
                                 } else
-                                    sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, false));
+                                    sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, false));
 
                             } else if (command == Command.SEND_TEXT) {
 
                                 // dodanie wysłanego od klienta tekstu do listy
-                                String text = packet.getParameter().trim();
+                                String text = packet.getString().trim();
                                 if (!text.isEmpty()) {
                                     synchronized (sendedTasks) {
                                         sendedTasks.offer(text);

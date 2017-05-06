@@ -2,19 +2,16 @@ import java.io.Serializable;
 
 class Player implements Serializable {
 
-    int idPlayer = -1;
+    int playerId = -1;
     String nick = "player";
     boolean isReady = false;
-    boolean isFinished = false;
-    int points = 0;
-    int actionPoints = 0;
 
     public Player(int id) {
-        this.idPlayer = id;
+        this.playerId = id;
     }
 
-    public int getId() {
-        return this.idPlayer;
+    public int getPlayerId() {
+        return this.playerId;
     }
 
     public void setNick(String nick) {
