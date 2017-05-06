@@ -239,6 +239,35 @@ public class KlientGUI extends JFrame {
         }
     }
 
+    private void updateUI(boolean isConnected) {
+        if (isConnected) {
+            host.setEnabled(false);
+            btnAddToSerwer.setEnabled(true);
+
+            btnLogon.setText("Rozlacz");
+            lbStatus.setText("Status: polaczony");
+            lbStatus.setForeground(Color.decode("#006600"));
+        } else {
+            input.setEnabled(false);
+            input.setText("");
+            text.setText("");
+
+            host.setEnabled(true);
+            btnAddToSerwer.setEnabled(false);
+            btnLogon.setEnabled(true);
+            btnReady.setEnabled(false);
+
+            btnLogon.setText("Polacz");
+            lbStatus.setText("Status: niepolaczony");
+            lbStatus.setForeground(Color.RED);
+            
+            for (PanelPlayer pp : panelGracza) {
+                pp.leave();
+                pp.progress.setValue(0);
+            }
+        }
+    }
+
     private class Klient extends Thread {
 
         private Socket socket;
@@ -253,10 +282,7 @@ public class KlientGUI extends JFrame {
                 receiveFromSerwer = new ObjectInputStream(socket.getInputStream());
 
                 isConnected = true;
-                btnLogon.setText("Rozlacz");
-                lbStatus.setText("Status: polaczony");
-                lbStatus.setForeground(Color.decode("#006600"));
-                btnAddToSerwer.setEnabled(true);
+                updateUI(isConnected);
 
                 sendToSerwer.writeObject(new Packet(Command.LOGIN_REQUEST));
                 sendToSerwer.flush();
@@ -269,15 +295,13 @@ public class KlientGUI extends JFrame {
                         if (packet != null) {
 
                             Command command = packet.getCommand();
-                            switch (command) {
+                            if (command == Command.LOGIN_RESPONSE) {
 
-                            case LOGIN_RESPONSE:
                                 // podanie nazwy użytkownika
                                 String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znakow): ");
                                 nick = nick.trim().toUpperCase();
                                 if (nick.equals("")) {
                                     sendToSerwer.writeObject(new Packet(Command.LOGOUT));
-                                    sendToSerwer.flush();
                                     addLog("Niepoprawny nick, zostales rozlaczony.");
                                 } else {
                                     // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
@@ -285,35 +309,22 @@ public class KlientGUI extends JFrame {
                                         nick = nick.substring(0, 6);
 
                                     sendToSerwer.writeObject(new Packet(Command.NICK_SET, nick));
-                                    sendToSerwer.flush();
                                     idPlayer = packet.getPlayerId();
                                     btnReady.setEnabled(true);
                                 }
-                                break;
 
-                            case LOGOUT:
+                            } else if (command == Command.LOGOUT) {
+
                                 // ustawienia ui klienta po wylogowaniu
                                 String message = packet.getParameter();
                                 if (message != null && !message.isEmpty())
                                     addLog(message);
 
                                 isConnected = false;
-                                btnLogon.setText("Polacz");
-                                btnLogon.setEnabled(true);
-                                lbStatus.setText("Status: niepolaczony");
-                                lbStatus.setForeground(Color.RED);
-                                btnReady.setEnabled(false);
-                                btnAddToSerwer.setEnabled(false);
-                                input.setEnabled(false);
-                                input.setText("");
-                                text.setText("");
-                                for (PanelPlayer pp : panelGracza) {
-                                    pp.leave();
-                                    pp.progress.setValue(0);
-                                }
-                                break;
+                                updateUI(isConnected);
 
-                            case LOGOUT_PLAYER_NOTIFY:
+                            } else if (command == Command.LOGOUT_PLAYER_NOTIFY) {
+
                                 // ustawienia ui panela gracza, który się wylogował
                                 int playerId = packet.getPlayerId();
                                 boolean isGameContinue = packet.getExtra();
@@ -334,24 +345,24 @@ public class KlientGUI extends JFrame {
 
                                 if (playerId != -1)
                                     panelGracza[playerId].join("-");
-                                break;
 
-                            case UPDATE_PLAYERS_LIST:
+                            } else if (command == Command.UPDATE_PLAYERS_LIST) {
+
                                 // wczytanie nazw graczy do paneli
                                 ExtendedPacket extendedPacket = (ExtendedPacket) packet;
                                 for (Player player : extendedPacket.getPlayers()) {
                                     panelGracza[player.getId()].join(player.getNick());
                                 }
-                                break;
 
-                            case CHANGE_READY:
+                            } else if (command == Command.CHANGE_READY) {
+                                
                                 // przełącznik koloru gotowości danego użytkownika
                                 int senderId = packet.getPlayerId();
                                 boolean isReady = packet.getExtra();
                                 panelGracza[senderId].setReadiness(isReady);
-                                break;
 
-                            case START_GAME:
+                            } else if (command == Command.START_GAME) {
+
                                 // rozpoczęcie gry
                                 ExtendedPacket task = (ExtendedPacket) packet;
                                 zadanie = task.getZadanie();
@@ -362,37 +373,37 @@ public class KlientGUI extends JFrame {
                                 text.setText(zadanie.getText());
                                 input.setEnabled(true);
                                 input.requestFocus();
-                                break;
 
-                            case PROGRESS:
+                            } else if (command == Command.PROGRESS) {
+
                                 // zmiana wartości progresu danego użytkownika
                                 panelGracza[packet.getPlayerId()].progress.setValue(packet.getProgress());
-                                break;
 
-                            case WIN:
+                            } else if (command == Command.WIN) {
+
                                 // poinformowanie o ukończeniu zadania przez danego użytkownika
                                 panelGracza[packet.getPlayerId()].setPlace(packet.getProgress());
                                 addLog("Gracz " + panelGracza[packet.getPlayerId()].labelWithNick.getText()
                                         + " juz skonczyl!");
-                                break;
 
-                            case SEND_TEXT_RESPONSE:
+                            } else if (command == Command.SEND_TEXT_RESPONSE) {
+
                                 // odpowiedź serwera na prośbę o pozwolenie na przesłanie tekstu do serwera
                                 boolean isAllowed = packet.getExtra();
                                 if (isAllowed)
                                     display();
                                 else
                                     addLog("Serwer odmowil zadanie o pozwolenia na przeslanie pliku.");
-                                break;
 
-                            case RESET:
+                            } else if (command == Command.RESET) {
+
                                 // ogłoszenie wyników użytkowników
                                 String content = "Tablica wynikow:";
                                 int counter = 1;
                                 ExtendedPacket players = (ExtendedPacket) packet;
                                 for (Player player : players.getPlayers())
                                     content += "\n" + (counter++) + ". " + player.nick;
-                                    
+
                                 addLog(content);
 
                                 // zresetowanie ui paneli graczy
@@ -403,8 +414,8 @@ public class KlientGUI extends JFrame {
                                     pp.progress.setValue(0);
                                     pp.setPlace("");
                                 }
-                                break;
                             }
+                            sendToSerwer.flush();
                         }
                     } catch (ClassNotFoundException ex) {
                     }
