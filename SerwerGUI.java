@@ -371,9 +371,11 @@ public class SerwerGUI extends JFrame {
                                     status = status & ~Consts.STARTED;
                                     synchronized (clients) {
                                         for (Connection client : clients) {
-                                            if (client != null)
+                                            if (client != null) {
+                                                client.sendToClient.reset(); // kluczowe (hint: http://stackoverflow.com/a/12341193)
                                                 client.sendToClient
                                                         .writeObject(new ExtendedPacket(Command.RESET, leaderboard));
+                                            }
                                         }
                                     }
                                     leaderboard.clear();
