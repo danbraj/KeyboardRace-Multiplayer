@@ -14,22 +14,21 @@ public class SerwerGUI extends JFrame {
     private JTextArea logs;
 
     private int portNumber = 2345;
-    private boolean isAllowAppendix = Config.IS_ALLOW_APPENDIX;
-    private boolean isRunning = false;
-    private boolean inProgress = false;
+    private boolean isAllowAppendix = Consts.IS_ALLOW_APPENDIX;
+    private int status = 0;
 
-    private ArrayList<Connection> clients = new ArrayList<Connection>(Config.MAX_PLAYERS);
+    private ArrayList<Connection> clients = new ArrayList<Connection>(Consts.MAX_PLAYERS);
 
     private LinkedList<String> sendedTasks = new LinkedList<String>();
-    private AtomicInteger tasksCount = new AtomicInteger(Config.MAX_TEXTS_QUEUE);
+    private AtomicInteger tasksCount = new AtomicInteger(Consts.MAX_TEXTS_QUEUE);
 
-    private ArrayList<Player> leaderboard = new ArrayList<>(Config.MAX_PLAYERS);
+    private ArrayList<Player> leaderboard = new ArrayList<>(Consts.MAX_PLAYERS);
     private int place = 0;
     private int playingPlayers = 0;
 
     public SerwerGUI() {
 
-        super("Serwer " + Config.VERSION);
+        super("Serwer " + Consts.VERSION);
         setSize(450, 320);
         setMinimumSize(new Dimension(450, 320));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -64,7 +63,7 @@ public class SerwerGUI extends JFrame {
         add(new JScrollPane(logs), BorderLayout.CENTER);
         add(btnTasks, BorderLayout.SOUTH);
 
-        for (int i = 0; i < Config.MAX_PLAYERS; i++)
+        for (int i = 0; i < Consts.MAX_PLAYERS; i++)
             clients.add(null);
 
         setVisible(true);
@@ -76,10 +75,10 @@ public class SerwerGUI extends JFrame {
 
         public void actionPerformed(ActionEvent e) {
             if (e.getSource() == btnRunSerwer) {
-                isRunning = !isRunning;
-                if (isRunning) {
+                status ^= Consts.RUNNING;
+                if ((status & Consts.RUNNING) == Consts.RUNNING) {
 
-                    for (int i = 0; i < Config.MAX_PLAYERS; i++)
+                    for (int i = 0; i < Consts.MAX_PLAYERS; i++)
                         clients.set(i, null);
 
                     serwer = new Serwer();
@@ -88,7 +87,7 @@ public class SerwerGUI extends JFrame {
                     port.setEnabled(false);
                 } else {
                     serwer.terminate();
-                    inProgress = false;
+                    status = status & ~Consts.STARTED;
                     btnRunSerwer.setText("Uruchom");
                     port.setEnabled(true);
                 }
@@ -100,7 +99,7 @@ public class SerwerGUI extends JFrame {
                         text = sendedTasks.poll();
                     }
 
-                    if (tasksCount.incrementAndGet() >= Config.MAX_TEXTS_QUEUE)
+                    if (tasksCount.incrementAndGet() >= Consts.MAX_TEXTS_QUEUE)
                         btnTasks.setEnabled(false);
 
                     btnTasks.setText("Pokaz odebrane zadania (" + sendedTasks.size() + ")");
@@ -167,7 +166,7 @@ public class SerwerGUI extends JFrame {
                 addLog("Serwer uruchomiony na porcie: " + serwer.getLocalPort());
                 addLog("Maksymalna pojemnosc serwera to " + clients.size() + " miejsc.");
 
-                while (isRunning) {
+                while ((status & Consts.RUNNING) == Consts.RUNNING) {
                     Socket socket = serwer.accept();
                     new Connection(socket).start();
                 }
@@ -206,7 +205,7 @@ public class SerwerGUI extends JFrame {
                 sendToClient.flush();
 
                 Packet packet = null;
-                while (isConnected && isRunning) {
+                while (((status & Consts.RUNNING) == Consts.RUNNING) && isConnected) {
 
                     try {
                         packet = (Packet) receiveFromClient.readObject();
@@ -215,7 +214,7 @@ public class SerwerGUI extends JFrame {
                             Command command = packet.getCommand();
                             if (command == Command.LOGIN_REQUEST) {
 
-                                if (!inProgress) {
+                                if ((status & Consts.STARTED) != Consts.STARTED) {
 
                                     String connectionIp = socket.getInetAddress().getHostAddress();
                                     boolean isFreeSlots = false;
@@ -258,7 +257,12 @@ public class SerwerGUI extends JFrame {
                                 for (Connection client : clients) {
                                     if (client != null && client != this)
                                         client.sendToClient.writeObject(
-                                                new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getId(), inProgress));
+                                            new Packet(
+                                                Command.LOGOUT_PLAYER_NOTIFY,
+                                                player.getId(),
+                                                (status & Consts.STARTED) == Consts.STARTED
+                                            )
+                                        );
                                 }
                                 // usunięcie użytkownika z listy użytkowników
                                 sendToClient.writeObject(new Packet(Command.LOGOUT, player.getId()));//
@@ -275,8 +279,8 @@ public class SerwerGUI extends JFrame {
                                 }
 
                                 // zatrzymanie rozgrywki, jeżeli ktoś wyszedł w trakcie gry
-                                if (inProgress)
-                                    inProgress = false;
+                                if ((status & Consts.STARTED) == Consts.STARTED)
+                                    status = status & ~Consts.STARTED;
 
                             } else if (command == Command.NICK_SET) {
 
@@ -316,7 +320,7 @@ public class SerwerGUI extends JFrame {
 
                                 // jeżeli wszyscy użytkownicy byli gotowi to startuje gra
                                 if (isReadyAll) {
-                                    inProgress = true;
+                                    status = status | Consts.STARTED;
 
                                     // wylosowanie zadania oraz jego przydzielenie do użytkowników i tym samym start rozgrywki 
                                     Zadanie zadanie = randomizeTask();
@@ -366,7 +370,7 @@ public class SerwerGUI extends JFrame {
                                 // jeżeli wszyscy ukończyli zadanie, następuje ogłoszenie wyników
                                 if (leaderboard.size() == playingPlayers) {
                                     place = 0;
-                                    inProgress = false;
+                                    status = status & ~Consts.STARTED;
                                     for (Connection client : clients) {
                                         if (client != null)
                                             client.sendToClient

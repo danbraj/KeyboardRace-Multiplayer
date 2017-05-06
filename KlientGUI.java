@@ -16,25 +16,26 @@ public class KlientGUI extends JFrame {
     private JLabel lbStatus;
 
     private String hostname = "localhost:2345";
-    private boolean isConnected = false;
+    private int status = 0; // 1 - connected
 
-    private PanelPlayer[] panelGracza = new PanelPlayer[Config.MAX_PLAYERS];
+    private PanelPlayer[] panelGracza = new PanelPlayer[Consts.MAX_PLAYERS];
 
     private Zadanie zadanie;
-    private Klient watekKlienta;
+    private Klient client;
+
     private int idPlayer;
 
     public KlientGUI() {
-        super("Klient " + Config.VERSION);
+        super("Klient " + Consts.VERSION);
         setSize(880, 600);
         setMinimumSize(new Dimension(640, 600));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         // -- panel z graczami
-        panelGraczy = new JPanel(new GridLayout(Config.MAX_PLAYERS, 0));
+        panelGraczy = new JPanel(new GridLayout(Consts.MAX_PLAYERS, 0));
         //panelGraczy.setLayout(new GridLayout(7, 0));
-        for (int i = 0; i < Config.MAX_PLAYERS; i++) {
+        for (int i = 0; i < Consts.MAX_PLAYERS; i++) {
             panelGracza[i] = new PanelPlayer(i);
             panelGracza[i].setPreferredSize(new Dimension(40, 40));
             panelGraczy.add(panelGracza[i]);
@@ -87,7 +88,7 @@ public class KlientGUI extends JFrame {
         lbStatus.setForeground(Color.RED);
 
         panelLogowania.add(new JLabel("Serwer (host:port)"));
-        panelLogowania.add(new JLabel(Config.VERSION, SwingConstants.RIGHT));
+        panelLogowania.add(new JLabel(Consts.VERSION, SwingConstants.RIGHT));
         panelLogowania.add(host);
         panelLogowania.add(lbStatus);
 
@@ -128,10 +129,10 @@ public class KlientGUI extends JFrame {
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                if (isConnected) {
+                if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
                     try {
-                        watekKlienta.sendToSerwer.writeObject(new Packet(Command.LOGOUT));
-                        watekKlienta.sendToSerwer.flush();
+                        client.sendToSerwer.writeObject(new Packet(Command.LOGOUT));
+                        client.sendToSerwer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
                     }
@@ -158,15 +159,15 @@ public class KlientGUI extends JFrame {
 
         if (result == JOptionPane.OK_OPTION) {
             try {
-                watekKlienta.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT, ta.getText()));
-                watekKlienta.sendToSerwer.flush();
+                client.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT, ta.getText()));
+                client.sendToSerwer.flush();
             } catch (IOException ex) {
                 addLog(ex.toString());
             }
         } else {
             try {
-                watekKlienta.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT, ""));
-                watekKlienta.sendToSerwer.flush();
+                client.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT, ""));
+                client.sendToSerwer.flush();
             } catch (IOException ex) {
                 addLog(ex.toString());
             }
@@ -179,29 +180,29 @@ public class KlientGUI extends JFrame {
 
             if (e.getSource() == btnAddToSerwer) {
                 try {
-                    watekKlienta.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT_REQUEST));
-                    watekKlienta.sendToSerwer.flush();
+                    client.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT_REQUEST));
+                    client.sendToSerwer.flush();
                 } catch (IOException ex) {
                     addLog(ex.toString());
                 }
             } else if (e.getSource() == btnReady) {
                 try {
-                    watekKlienta.sendToSerwer.writeObject(new Packet(Command.CHANGE_READY));
-                    watekKlienta.sendToSerwer.flush();
+                    client.sendToSerwer.writeObject(new Packet(Command.CHANGE_READY));
+                    client.sendToSerwer.flush();
                 } catch (IOException ex) {
                     addLog(ex.toString());
                 }
             } else if (e.getSource() == btnLogon) {
-                if (!isConnected) {
-                    watekKlienta = new Klient();
-                    watekKlienta.start();
-                } else {
+                if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
                     try {
-                        watekKlienta.sendToSerwer.writeObject(new Packet(Command.LOGOUT));
-                        watekKlienta.sendToSerwer.flush();
+                        client.sendToSerwer.writeObject(new Packet(Command.LOGOUT));
+                        client.sendToSerwer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
                     }
+                } else {
+                    client = new Klient();
+                    client.start();
                 }
             }
         }
@@ -213,9 +214,9 @@ public class KlientGUI extends JFrame {
                     panelGracza[idPlayer].progress.setValue(zadanie.getProgress());
 
                     try {
-                        watekKlienta.sendToSerwer
+                        client.sendToSerwer
                                 .writeObject(new Packet(Command.PROGRESS, idPlayer, zadanie.getProgress()));
-                        watekKlienta.sendToSerwer.flush();
+                        client.sendToSerwer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
                     }
@@ -223,8 +224,8 @@ public class KlientGUI extends JFrame {
                     if (zadanie.isSuccess) {
                         input.setEnabled(false);
                         try {
-                            watekKlienta.sendToSerwer.writeObject(new Packet(Command.WIN, idPlayer, ""));
-                            watekKlienta.sendToSerwer.flush();
+                            client.sendToSerwer.writeObject(new Packet(Command.WIN, idPlayer, ""));
+                            client.sendToSerwer.flush();
                         } catch (IOException ex) {
                             addLog(ex.toString());
                         }
@@ -239,8 +240,8 @@ public class KlientGUI extends JFrame {
         }
     }
 
-    private void updateUI(boolean isConnected) {
-        if (isConnected) {
+    private void updateUI() {
+        if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
             host.setEnabled(false);
             btnAddToSerwer.setEnabled(true);
 
@@ -281,14 +282,14 @@ public class KlientGUI extends JFrame {
                 sendToSerwer = new ObjectOutputStream(socket.getOutputStream());
                 receiveFromSerwer = new ObjectInputStream(socket.getInputStream());
 
-                isConnected = true;
-                updateUI(isConnected);
+                status = status | Consts.CONNECTED;
+                updateUI();
 
                 sendToSerwer.writeObject(new Packet(Command.LOGIN_REQUEST));
                 sendToSerwer.flush();
 
                 Packet packet = null;
-                while (isConnected) {
+                while ((status & Consts.CONNECTED) == Consts.CONNECTED) {
 
                     try {
                         packet = (Packet) receiveFromSerwer.readObject();
@@ -315,13 +316,13 @@ public class KlientGUI extends JFrame {
 
                             } else if (command == Command.LOGOUT) {
 
-                                // ustawienia ui klienta po wylogowaniu
+                                // ustawienia ui clienta po wylogowaniu
                                 String message = packet.getParameter();
                                 if (message != null && !message.isEmpty())
                                     addLog(message);
 
-                                isConnected = false;
-                                updateUI(isConnected);
+                                status = status & ~Consts.CONNECTED;
+                                updateUI();
 
                             } else if (command == Command.LOGOUT_PLAYER_NOTIFY) {
 
