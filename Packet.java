@@ -62,39 +62,23 @@ class Packet implements Serializable {
     }
 }
 
-class PacketWithPlayer extends Packet {
-    Player player;
+class ExtendedPacket extends Packet {
 
-    public PacketWithPlayer(Command command, Player player, String parameter) {
-        super(command, parameter);
-        this.player = player;
-    }
-}
-
-class PacketWithPlayersList extends Packet {
     ArrayList<Player> players;
+    Zadanie zadanie;
 
-    public PacketWithPlayersList(ArrayList<Player> players) {
-        super(Command.UPDATE_PLAYERS_LIST);
-        this.players = players;
-    }
-
-    public PacketWithPlayersList(Command command, ArrayList<Player> players) {
+    public ExtendedPacket(Command command, ArrayList<Player> players) {
         super(command);
         this.players = players;
     }
 
+    public ExtendedPacket(Command command, Zadanie zadanie) {
+        super(command);
+        this.zadanie = zadanie;
+    }
+
     public ArrayList<Player> getPlayers() {
         return this.players;
-    }
-}
-
-class PacketWithTask extends Packet {
-    Zadanie zadanie;
-
-    public PacketWithTask(Zadanie zadanie) {
-        super(Command.START_GAME);
-        this.zadanie = zadanie;
     }
 
     public Zadanie getZadanie() {

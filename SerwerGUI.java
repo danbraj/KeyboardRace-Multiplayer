@@ -264,7 +264,7 @@ public class SerwerGUI extends JFrame {
                                 for (Connection client : clients) {
                                     if (client != null && client != this)
                                         client.sendToClient
-                                                .writeObject(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getId()));
+                                                .writeObject(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getId(), inProgress));
                                 }
 
                                 addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
@@ -278,6 +278,10 @@ public class SerwerGUI extends JFrame {
                                 }
                                 this.isConnected = false;
                                 
+                                synchronized (leaderboard) {
+                                    leaderboard.clear();
+                                }
+
                                 // zatrzymanie rozgrywki, jeżeli ktoś wyszedł w trakcie gry
                                 if (inProgress)
                                     inProgress = false;
@@ -286,18 +290,21 @@ public class SerwerGUI extends JFrame {
                             case NICK_SET:
                                 player.setNick(packet.getParameter());
 
-                                // aktualizacja użytkownków dla nowego użytkownika 
-                                ArrayList<Player> players = new ArrayList<Player>(); // need improve
-                                for (Connection client : clients) {
-                                    if (client != null) {
-                                        players.add(client.player);
+                                synchronized (clients) {
+                                    ArrayList<Player> players = new ArrayList<Player>(); // need improve
+                                    for (Connection client : clients) {
+                                        if (client != null) {
+                                            players.add(client.player);
+                                        }
                                     }
-                                }
-                                // poinformowanie innych użytkowników o nowym użytkowniku
-                                for (Connection client : clients) {
-                                    if (client != null) {
-                                        client.sendToClient.writeObject(new PacketWithPlayersList(players));
-                                        client.sendToClient.flush();
+
+                                    // aktualizacja użytkownków dla nowego użytkownika 
+                                    // poinformowanie innych użytkowników o nowym użytkowniku
+                                    for (Connection client : clients) {
+                                        if (client != null) {
+                                            client.sendToClient.writeObject(new ExtendedPacket(Command.UPDATE_PLAYERS_LIST, players));
+                                            client.sendToClient.flush();
+                                        }
                                     }
                                 }
                                 break;
@@ -329,7 +336,7 @@ public class SerwerGUI extends JFrame {
                                             for (Connection client : clients) {
                                                 if (client != null) {
                                                     playingPlayers++;
-                                                    client.sendToClient.writeObject(new PacketWithTask(zadanie));
+                                                    client.sendToClient.writeObject(new ExtendedPacket(Command.START_GAME, zadanie));
                                                     client.sendToClient.flush();
                                                     client.player.setUnready();
                                                 }
@@ -377,7 +384,7 @@ public class SerwerGUI extends JFrame {
                                     for (Connection client : clients) {
                                         if (client != null) {
                                             client.sendToClient
-                                                    .writeObject(new PacketWithPlayersList(Command.RESET, leaderboard));
+                                                    .writeObject(new ExtendedPacket(Command.RESET, leaderboard));
                                             client.sendToClient.flush();
                                         }
                                     }

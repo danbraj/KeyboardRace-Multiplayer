@@ -316,16 +316,29 @@ public class KlientGUI extends JFrame {
                             case LOGOUT_PLAYER_NOTIFY:
                                 // ustawienia ui panela gracza, który się wylogował
                                 int playerId = packet.getPlayerId();
+                                boolean isGameContinue = packet.getExtra();
+                                if (isGameContinue) {
+                                    addLog("Gracz " + panelGracza[playerId].labelWithNick.getText() + " uciekl!");
 
-                                if (playerId != -1) {
-                                    panelGracza[playerId].join("-");
-                                    panelGracza[playerId].setReadiness(false);
+                                    btnLogon.setEnabled(true);
+                                    btnReady.setEnabled(true);
+                                    for (PanelPlayer pp : panelGracza) {
+                                        pp.setReadiness(false);
+                                        pp.progress.setValue(0);
+                                        pp.setPlace("");
+                                    }
+                                    input.setEnabled(false);
+                                    input.setText("");
+                                    text.setText("");
                                 }
+
+                                if (playerId != -1)
+                                    panelGracza[playerId].join("-");
                                 break;
 
                             case UPDATE_PLAYERS_LIST:
                                 // wczytanie nazw graczy do paneli
-                                PacketWithPlayersList extendedPacket = (PacketWithPlayersList) packet;
+                                ExtendedPacket extendedPacket = (ExtendedPacket) packet;
                                 for (Player player : extendedPacket.getPlayers()) {
                                     panelGracza[player.getId()].join(player.getNick());
                                 }
@@ -340,7 +353,7 @@ public class KlientGUI extends JFrame {
 
                             case START_GAME:
                                 // rozpoczęcie gry
-                                PacketWithTask task = (PacketWithTask) packet;
+                                ExtendedPacket task = (ExtendedPacket) packet;
                                 zadanie = task.getZadanie();
 
                                 btnReady.setEnabled(false);
@@ -376,13 +389,10 @@ public class KlientGUI extends JFrame {
                                 // ogłoszenie wyników użytkowników
                                 String content = "Tablica wynikow:";
                                 int counter = 1;
-                                PacketWithPlayersList players = (PacketWithPlayersList) packet;
-                                for (Player player : players.getPlayers()) {
-                                    panelGracza[player.idPlayer].progress.setValue(0);
-                                    ;
-                                    panelGracza[player.idPlayer].setPlace(""); //tmp
+                                ExtendedPacket players = (ExtendedPacket) packet;
+                                for (Player player : players.getPlayers())
                                     content += "\n" + (counter++) + ". " + player.nick;
-                                }
+                                    
                                 addLog(content);
 
                                 // zresetowanie ui paneli graczy
@@ -390,6 +400,8 @@ public class KlientGUI extends JFrame {
                                 btnReady.setEnabled(true);
                                 for (PanelPlayer pp : panelGracza) {
                                     pp.setReadiness(false);
+                                    pp.progress.setValue(0);
+                                    pp.setPlace("");
                                 }
                                 break;
                             }
@@ -463,7 +475,7 @@ public class KlientGUI extends JFrame {
                 btns[i].setText(Integer.toString(counter));
                 btns[i].setFont(new Font("Consolas", Font.PLAIN, 11));
                 btns[i].setOpaque(true);
-                //btn.setEnabled(false);
+                btns[i].setEnabled(false);
                 btns[i].addActionListener(umiejetnosc);
                 counter++;
             }
@@ -505,11 +517,7 @@ public class KlientGUI extends JFrame {
         public void setReadiness(boolean isReady) {
             this.panelWithNick.setBackground(Color.decode(isReady ? "#ccffcc" : "#ffcccc"));
         }
-
-        // public JButton[] getButtons() {
-        //     return this.btns;
-        // }
-
+        
         public void join(String nick) {
             this.labelWithNick.setText(nick);
         }
