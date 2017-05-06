@@ -272,6 +272,7 @@ public class KlientGUI extends JFrame {
                             switch (command) {
 
                             case LOGIN_RESPONSE:
+                                // podanie nazwy użytkownika
                                 String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znakow): ");
                                 nick = nick.trim().toUpperCase();
                                 if (nick.equals("")) {
@@ -279,6 +280,7 @@ public class KlientGUI extends JFrame {
                                     sendToSerwer.flush();
                                     addLog("Niepoprawny nick, zostales rozlaczony.");
                                 } else {
+                                    // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
                                     if (nick.length() > 6)
                                         nick = nick.substring(0, 6);
 
@@ -290,6 +292,7 @@ public class KlientGUI extends JFrame {
                                 break;
 
                             case LOGOUT:
+                                // ustawienia ui klienta po wylogowaniu
                                 String message = packet.getParameter();
                                 if (message != null && !message.isEmpty())
                                     addLog(message);
@@ -301,6 +304,9 @@ public class KlientGUI extends JFrame {
                                 lbStatus.setForeground(Color.RED);
                                 btnReady.setEnabled(false);
                                 btnAddToSerwer.setEnabled(false);
+                                input.setEnabled(false);
+                                input.setText("");
+                                text.setText("");
                                 for (PanelPlayer pp : panelGracza) {
                                     pp.leave();
                                     pp.progress.setValue(0);
@@ -308,7 +314,9 @@ public class KlientGUI extends JFrame {
                                 break;
 
                             case LOGOUT_PLAYER_NOTIFY:
+                                // ustawienia ui panela gracza, który się wylogował
                                 int playerId = packet.getPlayerId();
+
                                 if (playerId != -1) {
                                     panelGracza[playerId].join("-");
                                     panelGracza[playerId].setReadiness(false);
@@ -316,6 +324,7 @@ public class KlientGUI extends JFrame {
                                 break;
 
                             case UPDATE_PLAYERS_LIST:
+                                // wczytanie nazw graczy do paneli
                                 PacketWithPlayersList extendedPacket = (PacketWithPlayersList) packet;
                                 for (Player player : extendedPacket.getPlayers()) {
                                     panelGracza[player.getId()].join(player.getNick());
@@ -323,12 +332,14 @@ public class KlientGUI extends JFrame {
                                 break;
 
                             case CHANGE_READY:
+                                // przełącznik koloru gotowości danego użytkownika
                                 int senderId = packet.getPlayerId();
                                 boolean isReady = packet.getExtra();
                                 panelGracza[senderId].setReadiness(isReady);
                                 break;
 
                             case START_GAME:
+                                // rozpoczęcie gry
                                 PacketWithTask task = (PacketWithTask) packet;
                                 zadanie = task.getZadanie();
 
@@ -341,16 +352,19 @@ public class KlientGUI extends JFrame {
                                 break;
 
                             case PROGRESS:
+                                // zmiana wartości progresu danego użytkownika
                                 panelGracza[packet.getPlayerId()].progress.setValue(packet.getProgress());
                                 break;
 
                             case WIN:
+                                // poinformowanie o ukończeniu zadania przez danego użytkownika
                                 panelGracza[packet.getPlayerId()].setPlace(packet.getProgress());
                                 addLog("Gracz " + panelGracza[packet.getPlayerId()].labelWithNick.getText()
                                         + " juz skonczyl!");
                                 break;
 
                             case SEND_TEXT_RESPONSE:
+                                // odpowiedź serwera na prośbę o pozwolenie na przesłanie tekstu do serwera
                                 boolean isAllowed = packet.getExtra();
                                 if (isAllowed)
                                     display();
@@ -359,6 +373,7 @@ public class KlientGUI extends JFrame {
                                 break;
 
                             case RESET:
+                                // ogłoszenie wyników użytkowników
                                 String content = "Tablica wynikow:";
                                 int counter = 1;
                                 PacketWithPlayersList players = (PacketWithPlayersList) packet;
@@ -370,6 +385,7 @@ public class KlientGUI extends JFrame {
                                 }
                                 addLog(content);
 
+                                // zresetowanie ui paneli graczy
                                 btnLogon.setEnabled(true);
                                 btnReady.setEnabled(true);
                                 for (PanelPlayer pp : panelGracza) {

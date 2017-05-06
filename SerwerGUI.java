@@ -164,7 +164,7 @@ public class SerwerGUI extends JFrame {
         public void run() {
             try {
                 serwer = new ServerSocket(new Integer(port.getText()));
-                addLog("Serwer uruchomiony na porcie: " + port.getText());
+                addLog("Serwer uruchomiony na porcie: " + serwer.getLocalPort());
                 addLog("Maksymalna pojemnosc serwera to " + clients.size() + " miejsc.");
 
                 while (isRunning) {
@@ -216,10 +216,12 @@ public class SerwerGUI extends JFrame {
                             switch (command) {
 
                             case LOGIN_REQUEST:
+                                // jeżeli gra nie wystartowała to..
                                 if (!inProgress) {
                                     synchronized (clients) {
                                         boolean isFreeSlots = false;
 
+                                        // dodaj do listy klientów, jeżeli jest wolne miejsce
                                         for (int i = 0, k = clients.size(); i < k; i++) {
                                             if (clients.get(i) == null) {
                                                 clients.set(i, this);
@@ -233,6 +235,7 @@ public class SerwerGUI extends JFrame {
                                         addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
                                                 + " probuje sie polaczyc.");
 
+                                        // jeżeli było wolne miejsce to..
                                         if (isFreeSlots) {
                                             sendToClient.writeObject(
                                                     new Packet(Command.LOGIN_RESPONSE, player.getId(), ""));
@@ -257,6 +260,7 @@ public class SerwerGUI extends JFrame {
                                 break;
 
                             case LOGOUT:
+                                // poinformowanie pozostałych użytkowników o wylogowującym się użytkowników
                                 for (Connection client : clients) {
                                     if (client != null && client != this)
                                         client.sendToClient
@@ -265,25 +269,31 @@ public class SerwerGUI extends JFrame {
 
                                 addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
                                         + " zostal rozlaczony (SLOT " + player.getId() + ").");
-
+                                
+                                // usunięcie użytkownika z listy użytkowników
                                 sendToClient.writeObject(new Packet(Command.LOGOUT, player.getId(), ""));
                                 sendToClient.flush();
-
                                 synchronized (clients) {
                                     clients.set(player.getId(), null);
                                 }
                                 this.isConnected = false;
+                                
+                                // zatrzymanie rozgrywki, jeżeli ktoś wyszedł w trakcie gry
+                                if (inProgress)
+                                    inProgress = false;
                                 break;
 
                             case NICK_SET:
                                 player.setNick(packet.getParameter());
 
+                                // aktualizacja użytkownków dla nowego użytkownika 
                                 ArrayList<Player> players = new ArrayList<Player>(); // need improve
                                 for (Connection client : clients) {
                                     if (client != null) {
                                         players.add(client.player);
                                     }
                                 }
+                                // poinformowanie innych użytkowników o nowym użytkowniku
                                 for (Connection client : clients) {
                                     if (client != null) {
                                         client.sendToClient.writeObject(new PacketWithPlayersList(players));
@@ -293,6 +303,7 @@ public class SerwerGUI extends JFrame {
                                 break;
 
                             case CHANGE_READY:
+                                // zmiana gotowości użytkownika i sprawdzenie czy wszyscy pozostali są gotowi
                                 boolean isReady = player.toggleAndGetReady();
                                 boolean isReadyAll = true;
                                 for (Connection client : clients) {
@@ -306,8 +317,11 @@ public class SerwerGUI extends JFrame {
                                     }
                                 }
 
+                                // jeżeli wszyscy użytkownicy byli gotowi to startuje gra
                                 if (isReadyAll) {
                                     inProgress = true;
+                                    
+                                    // wylosowanie zadania oraz jego przydzielenie do użytkowników i tym samym start rozgrywki 
                                     Zadanie zadanie = randomizeTask();
                                     if (zadanie != null) {
                                         synchronized (clients) {
@@ -328,6 +342,7 @@ public class SerwerGUI extends JFrame {
                                 break;
 
                             case PROGRESS:
+                                // poinformowanie użytkowników o zmieniającym się progresie
                                 int senderId = packet.getPlayerId();
                                 int progress = packet.getProgress();
                                 for (Connection client : clients) {
@@ -340,6 +355,7 @@ public class SerwerGUI extends JFrame {
                                 break;
 
                             case WIN:
+                                // dodanie użytkownika, który skończył zadanie do listy 
                                 int winnerId = packet.getPlayerId();
                                 synchronized (leaderboard) {
                                     leaderboard.add(player);
@@ -354,6 +370,7 @@ public class SerwerGUI extends JFrame {
                                     }
                                 }
 
+                                // jeżeli wszyscy ukończyli zadanie, następuje ogłoszenie wyników
                                 if (leaderboard.size() == playingPlayers) {
                                     place = 0;
                                     inProgress = false;
@@ -369,8 +386,10 @@ public class SerwerGUI extends JFrame {
                                 break;
 
                             case SEND_TEXT_REQUEST:
+                                // jeżeli ustawiono w konfiguracji możliwość wysyłania tekstów to..
                                 if (isAllowAppendix) {
                                     synchronized (tasksCount) {
+                                        // jeżeli nie został osiągnięty limit tekstów w poczekalni to..
                                         if (tasksCount.get() > 0) {
                                             tasksCount.decrementAndGet();
                                             sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, true));
@@ -381,6 +400,7 @@ public class SerwerGUI extends JFrame {
                                 break;
 
                             case SEND_TEXT:
+                                // dodanie wysłanego od klienta tekstu do listy
                                 String text = packet.getParameter().trim();
                                 if (!text.isEmpty()) {
                                     synchronized (sendedTasks) {
