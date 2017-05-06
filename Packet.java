@@ -4,36 +4,13 @@ import java.util.ArrayList;
 class Packet implements Serializable {
 
     Command command;
-    String parameter;
     int senderId = -1;
-    boolean extra;
-    int progress;
+    String paramString;
+    boolean paramBool;
+    int paramInt;
 
     public Packet(Command command) {
         this.command = command;
-    }
-
-    public Packet(Command command, String parameter) {
-        this.command = command;
-        this.parameter = parameter;
-    }
-
-    public Packet(Command command, int senderId, String parameter) {
-        this.command = command;
-        this.senderId = senderId;
-        this.parameter = parameter;
-    }
-
-    public Packet(Command command, int senderId, boolean extra) {
-        this.command = command;
-        this.senderId = senderId;
-        this.extra = extra;
-    }
-
-    public Packet(Command command, int senderId, int progress) {
-        this.command = command;
-        this.senderId = senderId;
-        this.progress = progress;
     }
 
     public Packet(Command command, int senderId) {
@@ -41,12 +18,40 @@ class Packet implements Serializable {
         this.senderId = senderId;
     }
 
+    public Packet(Command command, String paramString) {
+        this.command = command;
+        this.paramString = paramString;
+    }
+
+    public Packet(Command command, boolean paramBool) {
+        this.command = command;
+        this.paramBool = paramBool;
+    }
+
+    public Packet(Command command, int senderId, String paramString) {
+        this.command = command;
+        this.senderId = senderId;
+        this.paramString = paramString;
+    }
+
+    public Packet(Command command, int senderId, boolean paramBool) {
+        this.command = command;
+        this.senderId = senderId;
+        this.paramBool = paramBool;
+    }
+
+    public Packet(Command command, int senderId, int paramInt) {
+        this.command = command;
+        this.senderId = senderId;
+        this.paramInt = paramInt;
+    }
+
     public Command getCommand() {
         return this.command;
     }
 
     public String getParameter() {
-        return this.parameter;
+        return this.paramString;
     }
 
     public int getPlayerId() {
@@ -54,11 +59,39 @@ class Packet implements Serializable {
     }
 
     public boolean getExtra() {
-        return this.extra;
+        return this.paramBool;
     }
 
     public int getProgress() {
-        return this.progress;
+        return this.paramInt;
+    }
+
+    public int getSenderId() {
+        return this.senderId;
+    }
+
+    public void setAdditional(String value) {
+        this.paramString = value;
+    }
+
+    public void setAdditional(int value) {
+        this.paramInt = value;
+    }
+
+    public void setAdditional(boolean value) {
+        this.paramBool = value;
+    }
+
+    public String getString() {
+        return this.paramString;
+    }
+
+    public int getInt() {
+        return this.paramInt;
+    }
+
+    public boolean getBool() {
+        return this.paramBool;
     }
 }
 
