@@ -216,34 +216,33 @@ public class SerwerGUI extends JFrame {
                             if (command == Command.LOGIN_REQUEST) {
 
                                 if (!inProgress) {
-                                    
+
+                                    String connectionIp = socket.getInetAddress().getHostAddress();
                                     boolean isFreeSlots = false;
+
+                                    addLog("Uzytkownik " + connectionIp + " probuje sie polaczyc.");
 
                                     // stwórz gracza i dodaj do listy, jeżeli jest wolne miejsce
                                     synchronized (clients) {
                                         for (int index = 0, k = clients.size(); index < k; index++) {
                                             if (clients.get(index) == null) {
                                                 clients.set(index, this);
-                                                player = new Player();
-                                                player.setId(index);
+                                                player = new Player(index);
                                                 isFreeSlots = true;
+
+                                                sendToClient.writeObject(
+                                                        new Packet(Command.LOGIN_RESPONSE, player.getId()));
+                                                addLog("Uzytkownik " + connectionIp + " zostal polaczony (SLOT "
+                                                        + player.getId() + ").");
                                                 break;
                                             }
                                         }
                                     }
-                                    addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                            + " probuje sie polaczyc.");
 
-                                    // jeżeli było wolne miejsce to..
-                                    if (isFreeSlots) {
-                                        sendToClient.writeObject(
-                                                new Packet(Command.LOGIN_RESPONSE, player.getId()));
-                                        addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                                + " zostal polaczony (SLOT " + player.getId() + ").");
-                                    } else {
+                                    if (!isFreeSlots) {
                                         sendToClient.writeObject(
                                                 new Packet(Command.LOGOUT, "Niestety nie ma wolnych miejsc :<"));
-                                        addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
+                                        addLog("Uzytkownik " + connectionIp
                                                 + " zostal rozlaczony, z powodu braku wolnego miejsca.");
                                     }
                                 } else {
@@ -258,19 +257,19 @@ public class SerwerGUI extends JFrame {
                                 // poinformowanie pozostałych użytkowników o wylogowującym się użytkowników
                                 for (Connection client : clients) {
                                     if (client != null && client != this)
-                                        client.sendToClient
-                                                .writeObject(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getId(), inProgress));
+                                        client.sendToClient.writeObject(
+                                                new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getId(), inProgress));
                                 }
                                 // usunięcie użytkownika z listy użytkowników
                                 sendToClient.writeObject(new Packet(Command.LOGOUT, player.getId()));//
                                 addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
                                         + " zostal rozlaczony (SLOT " + player.getId() + ").");
-                                
+
                                 this.isConnected = false;
                                 synchronized (clients) {
                                     clients.set(player.getId(), null);
                                 }
-                                
+
                                 synchronized (leaderboard) {
                                     leaderboard.clear();
                                 }
@@ -295,7 +294,8 @@ public class SerwerGUI extends JFrame {
                                     // poinformowanie innych użytkowników o nowym użytkowniku
                                     for (Connection client : clients) {
                                         if (client != null)
-                                            client.sendToClient.writeObject(new ExtendedPacket(Command.UPDATE_PLAYERS_LIST, players));
+                                            client.sendToClient.writeObject(
+                                                    new ExtendedPacket(Command.UPDATE_PLAYERS_LIST, players));
                                     }
                                 }
 
@@ -317,7 +317,7 @@ public class SerwerGUI extends JFrame {
                                 // jeżeli wszyscy użytkownicy byli gotowi to startuje gra
                                 if (isReadyAll) {
                                     inProgress = true;
-                                    
+
                                     // wylosowanie zadania oraz jego przydzielenie do użytkowników i tym samym start rozgrywki 
                                     Zadanie zadanie = randomizeTask();
                                     if (zadanie != null) {
@@ -326,7 +326,8 @@ public class SerwerGUI extends JFrame {
                                             for (Connection client : clients) {
                                                 if (client != null) {
                                                     playingPlayers++;
-                                                    client.sendToClient.writeObject(new ExtendedPacket(Command.START_GAME, zadanie));
+                                                    client.sendToClient.writeObject(
+                                                            new ExtendedPacket(Command.START_GAME, zadanie));
                                                     client.player.setUnready();
                                                 }
                                             }
@@ -383,9 +384,11 @@ public class SerwerGUI extends JFrame {
                                         if (tasksCount.get() > 0) {
                                             tasksCount.decrementAndGet();
                                             sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, true));
-                                        } else sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, false));
+                                        } else
+                                            sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, false));
                                     }
-                                } else sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, false));
+                                } else
+                                    sendToClient.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, -1, false));
 
                             } else if (command == Command.SEND_TEXT) {
 

@@ -9,7 +9,7 @@ class Player implements Serializable {
     int points = 0;
     int actionPoints = 0;
 
-    public void setId(int id) {
+    public Player(int id) {
         this.idPlayer = id;
     }
 
