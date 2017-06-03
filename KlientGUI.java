@@ -16,7 +16,7 @@ public class KlientGUI extends JFrame {
     private JLabel lbStatus;
 
     private String hostname = "localhost:2345";
-    private int status = 0; // 1 - connected
+    private int status = 0; // 0 - not connected, 1 - connected
 
     private PanelPlayer[] panelGracza = new PanelPlayer[Consts.MAX_PLAYERS];
     private int playerId;
@@ -33,7 +33,6 @@ public class KlientGUI extends JFrame {
 
         // -- panel z graczami
         panelGraczy = new JPanel(new GridLayout(Consts.MAX_PLAYERS, 0));
-        //panelGraczy.setLayout(new GridLayout(7, 0));
         for (int i = 0; i < Consts.MAX_PLAYERS; i++) {
             panelGracza[i] = new PanelPlayer(i);
             panelGracza[i].setPreferredSize(new Dimension(40, 40));
@@ -61,29 +60,35 @@ public class KlientGUI extends JFrame {
         input.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "space");
         input.getActionMap().put("space", new AbstractAction() {
             public void actionPerformed(ActionEvent evt) {
+
                 String stringToCut = input.getText().trim();
                 if (zadanie.ifEqualsGoNext(stringToCut)) {
 
-                    panelGracza[playerId].progress.setValue(zadanie.getProgress());
-
-                    int ap = panelGracza[playerId].addActionPointAndGet();
-                    if (ap == 3) { // 10
-                        for (PanelPlayer pp : panelGracza)
-                            pp.setSkillAvailability(0, true);
-                    } else if (ap == 5) { // 25
-                        for (PanelPlayer pp : panelGracza)
-                            pp.setSkillAvailability(1, true);
-                    } else if (ap == 8) { // 30
-                        for (PanelPlayer pp : panelGracza)
-                            pp.setSkillAvailability(2, true);
-                    }
-
+                    panelGracza[playerId].setProgressValue(zadanie.getProgress());
                     try {
                         client.sendToSerwer.writeObject(new Packet(Command.PROGRESS, playerId, zadanie.getProgress()));
                         client.sendToSerwer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
                     }
+
+                    boolean isChanged = false;
+                    int idSkill = -1, ap = panelGracza[playerId].addActionPointAndGet();
+                    if (ap == Variety.HIDE_INPUT_CONTENT.getCost()) {
+                        idSkill = 0;
+                        isChanged = true;
+                    } else if (ap == Variety.REVERSE_WORDS_IN_TEXT.getCost()) {
+                        idSkill = 1;
+                        isChanged = true;
+                    } else if (ap == Variety.SHUFFLE_CHARS_IN_WORDS.getCost()) {
+                        idSkill = 2;
+                        isChanged = true;
+                    }
+
+                    if (isChanged)
+                        for (PanelPlayer pp : panelGracza)
+                            if (pp.panelId != playerId && !pp.getNick().isEmpty())
+                                pp.setSkillAvailability(idSkill, true);
 
                     if (zadanie.isSuccess) {
                         input.setEnabled(false);
@@ -185,6 +190,7 @@ public class KlientGUI extends JFrame {
         setVisible(true);
     }
 
+    // wyświetlenie popupa z możliwością dodania tekstu do aplikacji
     private void displayRequestWithTextPopup() {
 
         JTextArea ta = new JTextArea();
@@ -249,6 +255,7 @@ public class KlientGUI extends JFrame {
         }
     }
 
+    // aktualizacja wyglądu UI aplikacji w zależności od stanu połączenia
     private void updateUI() {
         if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
             host.setEnabled(false);
@@ -353,7 +360,7 @@ public class KlientGUI extends JFrame {
                                     btnReady.setEnabled(true);
                                     for (PanelPlayer pp : panelGracza) {
                                         pp.setReadiness(false);
-                                        pp.progress.setValue(0);
+                                        pp.setProgressValue(0);
                                         pp.setPlace("");
                                     }
                                     input.setEnabled(false);
@@ -361,7 +368,7 @@ public class KlientGUI extends JFrame {
                                     text.setText("");
                                 }
                                 panelGracza[playerId].join("-");
-                                panelGracza[playerId].progress.setValue(0);
+                                panelGracza[playerId].setProgressValue(0);
 
                             } else if (command == Command.UPDATE_PLAYERS_LIST) {
 
@@ -391,7 +398,7 @@ public class KlientGUI extends JFrame {
                             } else if (command == Command.PROGRESS) {
 
                                 // zmiana wartości progresu danego użytkownika
-                                panelGracza[packet.getPlayerId()].progress.setValue(packet.getInt());
+                                panelGracza[packet.getPlayerId()].setProgressValue(packet.getInt());
 
                             } else if (command == Command.WIN) {
 
@@ -425,7 +432,7 @@ public class KlientGUI extends JFrame {
                                 btnReady.setEnabled(true);
                                 for (PanelPlayer pp : panelGracza) {
                                     pp.setReadiness(false);
-                                    pp.progress.setValue(0);
+                                    pp.setProgressValue(0);
                                     pp.setPlace("");
                                     pp.setSkillAvailability(0, false);
                                     pp.setSkillAvailability(1, false);
@@ -445,8 +452,8 @@ public class KlientGUI extends JFrame {
                                         public void run() {
 
                                             try {
-                                                client.sendToSerwer.writeObject(
-                                                        new Packet(Command.DEBUFF_CLEAR, Debuff.INVISIBILITY, targetId));
+                                                client.sendToSerwer.writeObject(new Packet(Command.DEBUFF_CLEAR,
+                                                        Debuff.INVISIBILITY, targetId));
                                                 client.sendToSerwer.flush();
                                             } catch (IOException ex) {
                                                 addLog(ex.toString());
@@ -507,7 +514,7 @@ public class KlientGUI extends JFrame {
 
     private class PanelPlayer extends JPanel {
 
-        public JProgressBar progress;
+        JProgressBar progress;
         JPanel color, panelWithNick;
         JLabel labelWithNick, labelWithPlace, labelWithAP;
         JButton[] btns = new JButton[3];
@@ -544,20 +551,21 @@ public class KlientGUI extends JFrame {
 
             btnsBox.add(labelWithAP, BorderLayout.LINE_START);
 
-            char[] shortcuts = { 'I', 'R', 'S' };
             int counter = 0;
-            Umiejetnosc umiejetnosc = new Umiejetnosc();
+            ObslugaUmiejetnosci obslugaUmiejetnosci = new ObslugaUmiejetnosci();
             for (int i = 0, k = btns.length; i < k; i++) {
                 btns[i] = new JButton();
                 btns[i].setPreferredSize(new Dimension(40, 40));
-                btnsBox.add(btns[i], BorderLayout.LINE_START);
-                btns[i].setText(Character.toString(shortcuts[i]));
                 btns[i].setFont(new Font("Consolas", Font.PLAIN, 11));
                 btns[i].setOpaque(true);
                 btns[i].setEnabled(false);
-                btns[i].addActionListener(umiejetnosc);
+                btns[i].addActionListener(obslugaUmiejetnosci);
+                btnsBox.add(btns[i], BorderLayout.LINE_START);
                 counter++;
             }
+            btns[0].setText(Character.toString(Variety.HIDE_INPUT_CONTENT.getShortcut()));
+            btns[1].setText(Character.toString(Variety.REVERSE_WORDS_IN_TEXT.getShortcut()));
+            btns[2].setText(Character.toString(Variety.SHUFFLE_CHARS_IN_WORDS.getShortcut()));
 
             JPanel left = new JPanel(new BorderLayout());
             left.setPreferredSize(new Dimension(340, 340));
@@ -593,6 +601,10 @@ public class KlientGUI extends JFrame {
             }
         }
 
+        public void setProgressValue(int value) {
+            this.progress.setValue(value);
+        }
+
         public void setReadiness(boolean isReady) {
             this.panelWithNick.setBackground(Color.decode(isReady ? "#ccffcc" : "#ffcccc"));
         }
@@ -606,7 +618,7 @@ public class KlientGUI extends JFrame {
         }
 
         public void leave() {
-            this.progress.setValue(0);
+            this.setProgressValue(0);
             this.labelWithNick.setText("");
             this.panelWithNick.setBackground(Color.decode("#ffcccc"));
             this.labelWithAP.setText("");
@@ -663,12 +675,17 @@ public class KlientGUI extends JFrame {
 
         private void setSkillActivity(int idSkill, boolean activity) {
             if (activity)
-                this.btns[idSkill].setBackground(Color.YELLOW);
+                if (idSkill == 0) 
+                    this.btns[idSkill].setBackground(Variety.HIDE_INPUT_CONTENT.getColor());
+                else if (idSkill == 1)
+                    this.btns[idSkill].setBackground(Variety.REVERSE_WORDS_IN_TEXT.getColor());
+                else if (idSkill == 2)
+                    this.btns[idSkill].setBackground(Variety.SHUFFLE_CHARS_IN_WORDS.getColor());
             else
                 this.btns[idSkill].setBackground(null);
         }
 
-        private class Umiejetnosc implements ActionListener {
+        private class ObslugaUmiejetnosci implements ActionListener {
 
             public void actionPerformed(ActionEvent e) {
 
@@ -700,22 +717,22 @@ public class KlientGUI extends JFrame {
 
         int cost = 0;
         if (c == Debuff.INVISIBILITY)
-            cost = 3;
+            cost = Variety.HIDE_INPUT_CONTENT.getCost();
         else if (c == Debuff.REVERSE)
-            cost = 5;
+            cost = Variety.REVERSE_WORDS_IN_TEXT.getCost();
         else if (c == Debuff.SHUFFLE)
-            cost = 8;
+            cost = Variety.SHUFFLE_CHARS_IN_WORDS.getCost();
 
         if (panelGracza[playerId].tryChangeActionPoints(cost)) {
 
             int currentActionPoints = panelGracza[playerId].getActionPoints();
-            if (currentActionPoints < 8) {
+            if (currentActionPoints < Variety.SHUFFLE_CHARS_IN_WORDS.getCost()) {
                 for (PanelPlayer pp : panelGracza)
                     pp.setSkillAvailability(2, false);
-                if (currentActionPoints < 5) {
+                if (currentActionPoints < Variety.REVERSE_WORDS_IN_TEXT.getCost()) {
                     for (PanelPlayer pp : panelGracza)
                         pp.setSkillAvailability(1, false);
-                    if (currentActionPoints < 3) {
+                    if (currentActionPoints < Variety.HIDE_INPUT_CONTENT.getCost()) {
                         for (PanelPlayer pp : panelGracza)
                             pp.setSkillAvailability(0, false);
                     }
