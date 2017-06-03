@@ -28,7 +28,7 @@ class Zadanie implements Serializable {
 
     public boolean ifEqualsGoNext(String word) {
         if (!this.isSuccess) {
-            if (word.equals(this.words[this.counter] + " ")) {
+            if (word.equals(this.words[this.counter])) {
                 if (this.counter == this.wordsCount - 1)
                     this.isSuccess = true;
                 this.counter++;
