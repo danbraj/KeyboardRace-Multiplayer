@@ -200,7 +200,7 @@ public class SerwerGUI extends JFrame {
 
         public void run() {
             try {
-                sendToClient = new ObjectOutputStream(socket.getOutputStream()); // hint: http://stackoverflow.com/a/14111047
+                sendToClient = new ObjectOutputStream(socket.getOutputStream());
                 receiveFromClient = new ObjectInputStream(socket.getInputStream());
                 sendToClient.flush();
 
@@ -372,7 +372,7 @@ public class SerwerGUI extends JFrame {
                                     synchronized (clients) {
                                         for (Connection client : clients) {
                                             if (client != null) {
-                                                client.sendToClient.reset(); // kluczowe (hint: http://stackoverflow.com/a/12341193)
+                                                client.sendToClient.reset();
                                                 client.sendToClient
                                                         .writeObject(new ExtendedPacket(Command.RESET, leaderboard));
                                             }
@@ -409,6 +409,12 @@ public class SerwerGUI extends JFrame {
                                     btnTasks.setEnabled(true);
                                 } else
                                     tasksCount.incrementAndGet();
+
+                            } else if (command == Command.DEBUFF_CAST || command == Command.DEBUFF_CLEAR) {
+
+                                for (Connection client : clients)
+                                    if (client != null)
+                                        client.sendToClient.writeObject(packet);
                             }
                             sendToClient.flush();
                         }
@@ -428,6 +434,7 @@ public class SerwerGUI extends JFrame {
         }
     }
 
+    // funkcja losująca zadanie (tekst do przepisania) ze zbioru plików w folderze Texts
     private Zadanie randomizeTask() {
         ArrayList<File> files = ObslugaPlikow.getFiles();
         if (!files.isEmpty()) {

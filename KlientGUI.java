@@ -432,6 +432,35 @@ public class KlientGUI extends JFrame {
                                     pp.setSkillAvailability(2, false);
                                 }
                                 panelGracza[playerId].resetActionPoints();
+
+                            } else if (command == Command.DEBUFF_CAST) {
+
+                                int targetId = packet.getInt();
+                                Debuff debuff = packet.getDebuff();
+
+                                panelGracza[targetId].setSkillActivity(0, true);
+                                if (playerId == targetId) {
+                                    castDebuff(debuff);
+                                    new java.util.Timer().schedule(new java.util.TimerTask() {
+                                        public void run() {
+
+                                            try {
+                                                client.sendToSerwer.writeObject(
+                                                        new Packet(Command.DEBUFF_CLEAR, Debuff.INVISIBILITY, targetId));
+                                                client.sendToSerwer.flush();
+                                            } catch (IOException ex) {
+                                                addLog(ex.toString());
+                                            }
+                                            clearDebuff(debuff);
+                                        }
+                                    }, 5000);
+                                }
+
+                            } else if (command == Command.DEBUFF_CLEAR) {
+
+                                int targetId = packet.getInt();
+                                Debuff debuff = packet.getDebuff();
+                                panelGracza[targetId].setSkillActivity(0, false);
                             }
                             sendToSerwer.flush();
                         }
@@ -456,6 +485,24 @@ public class KlientGUI extends JFrame {
                 }
             }
         }
+    }
+
+    public void castDebuff(Debuff d) {
+        if (d == Debuff.INVISIBILITY)
+            this.castInvisibilityDebuff();
+    }
+
+    public void clearDebuff(Debuff d) {
+        if (d == Debuff.INVISIBILITY)
+            this.clearInvisibilityDebuff();
+    }
+
+    private void castInvisibilityDebuff() {
+        input.setForeground(Color.WHITE);
+    }
+
+    private void clearInvisibilityDebuff() {
+        input.setForeground(Color.BLACK);
     }
 
     private class PanelPlayer extends JPanel {
@@ -614,35 +661,49 @@ public class KlientGUI extends JFrame {
             this.btns[idSkill].setEnabled(availability);
         }
 
+        private void setSkillActivity(int idSkill, boolean activity) {
+            if (activity)
+                this.btns[idSkill].setBackground(Color.YELLOW);
+            else
+                this.btns[idSkill].setBackground(null);
+        }
+
         private class Umiejetnosc implements ActionListener {
 
             public void actionPerformed(ActionEvent e) {
 
                 if (e.getSource() == btns[0]) {
-                    if (updateSkillsAvailability(Command.DEBUFF_INVISIBILITY)) {
-                        addLog(Command.DEBUFF_INVISIBILITY + "\nSender: " + playerId + "\nTarget: " + panelId);
+                    if (updateSkillsAvailability(Debuff.INVISIBILITY)) {
+                        try {
+                            client.sendToSerwer
+                                    .writeObject(new Packet(Command.DEBUFF_CAST, Debuff.INVISIBILITY, panelId));
+                            client.sendToSerwer.flush();
+                        } catch (IOException ex) {
+                            addLog(ex.toString());
+                        }
+                        addLog(Debuff.INVISIBILITY + "\nSender: " + playerId + "\nTarget: " + panelId);
                     }
                 } else if (e.getSource() == btns[1]) {
-                    if (updateSkillsAvailability(Command.DEBUFF_REVERSE)) {
-                        addLog(Command.DEBUFF_REVERSE + "\nSender: " + playerId + "\nTarget: " + panelId);
+                    if (updateSkillsAvailability(Debuff.REVERSE)) {
+                        addLog(Debuff.REVERSE + "\nSender: " + playerId + "\nTarget: " + panelId);
                     }
                 } else if (e.getSource() == btns[2]) {
-                    if (updateSkillsAvailability(Command.DEBUFF_SHUFFLE)) {
-                        addLog(Command.DEBUFF_SHUFFLE + "\nSender: " + playerId + "\nTarget: " + panelId);
+                    if (updateSkillsAvailability(Debuff.SHUFFLE)) {
+                        addLog(Debuff.SHUFFLE + "\nSender: " + playerId + "\nTarget: " + panelId);
                     }
                 }
             }
         }
     }
 
-    private boolean updateSkillsAvailability(Command c) {
+    private boolean updateSkillsAvailability(Debuff c) {
 
         int cost = 0;
-        if (c == Command.DEBUFF_INVISIBILITY)
+        if (c == Debuff.INVISIBILITY)
             cost = 3;
-        else if (c == Command.DEBUFF_REVERSE)
+        else if (c == Debuff.REVERSE)
             cost = 5;
-        else if (c == Command.DEBUFF_SHUFFLE)
+        else if (c == Debuff.SHUFFLE)
             cost = 8;
 
         if (panelGracza[playerId].tryChangeActionPoints(cost)) {

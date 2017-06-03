@@ -8,6 +8,7 @@ class Packet implements Serializable {
     String paramString;
     boolean paramBool;
     int paramInt;
+    Debuff debuff;
 
     public Packet(Command command) {
         this.command = command;
@@ -46,8 +47,18 @@ class Packet implements Serializable {
         this.paramInt = paramInt;
     }
 
+    public Packet(Command command, Debuff debuff, int paramInt) {
+        this.command = command;
+        this.debuff = debuff;
+        this.paramInt = paramInt;
+    }
+
     public Command getCommand() {
         return this.command;
+    }
+
+    public Debuff getDebuff() {
+        return this.debuff;
     }
 
     public int getPlayerId() {
