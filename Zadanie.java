@@ -34,7 +34,9 @@ class Zadanie implements Serializable {
                 this.counter++;
                 this.progress = (int) Math.floor(((double) this.counter / this.wordsCount) * 100);
                 return true;
-            } else return false;
-        } else return false;
+            } else
+                return false;
+        } else
+            return false;
     }
 }

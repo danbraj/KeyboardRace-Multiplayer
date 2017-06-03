@@ -19,11 +19,11 @@ public class KlientGUI extends JFrame {
     private int status = 0; // 1 - connected
 
     private PanelPlayer[] panelGracza = new PanelPlayer[Consts.MAX_PLAYERS];
+    private int playerId;
+    private int actionPoints = 0;
 
     private Zadanie zadanie;
     private Klient client;
-
-    private int playerId;
 
     public KlientGUI() {
         super("Klient " + Consts.VERSION);
@@ -144,7 +144,7 @@ public class KlientGUI extends JFrame {
         setVisible(true);
     }
 
-    private void display() {
+    private void displayRequestWithTextPopup() {
 
         JTextArea ta = new JTextArea();
         ta.setLineWrap(true);
@@ -261,10 +261,8 @@ public class KlientGUI extends JFrame {
             lbStatus.setText("Status: niepolaczony");
             lbStatus.setForeground(Color.RED);
 
-            for (PanelPlayer pp : panelGracza) {
+            for (PanelPlayer pp : panelGracza)
                 pp.leave();
-                pp.progress.setValue(0);
-            }
         }
     }
 
@@ -299,18 +297,26 @@ public class KlientGUI extends JFrame {
 
                                 // podanie nazwy użytkownika
                                 String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znakow): ");
-                                nick = nick.trim().toUpperCase();
-                                if (nick.equals("")) {
-                                    sendToSerwer.writeObject(new Packet(Command.LOGOUT));
-                                    addLog("Niepoprawny nick, zostales rozlaczony.");
-                                } else {
-                                    // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
-                                    if (nick.length() > 6)
-                                        nick = nick.substring(0, 6);
+                                if (nick != null) {
+                                    nick = nick.trim().toUpperCase();
+                                    if (nick.equals("")) {
+                                        sendToSerwer.writeObject(new Packet(Command.LOGOUT));
+                                        addLog("Niepoprawny nick, zostales rozlaczony.");
+                                    } else {
+                                        // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
+                                        if (nick.length() > 6)
+                                            nick = nick.substring(0, 6);
 
-                                    sendToSerwer.writeObject(new Packet(Command.NICK_SET, nick));
-                                    playerId = packet.getPlayerId();
-                                    btnReady.setEnabled(true);
+                                        sendToSerwer.writeObject(new Packet(Command.NICK_SET, nick));
+
+                                        playerId = packet.getPlayerId();
+                                        panelGracza[playerId].resetActionPoints();
+
+                                        btnReady.setEnabled(true);
+                                    }
+                                } else {
+                                    sendToSerwer.writeObject(new Packet(Command.LOGOUT));
+                                    addLog("Wylogowano.");
                                 }
 
                             } else if (command == Command.LOGOUT) {
@@ -388,7 +394,7 @@ public class KlientGUI extends JFrame {
 
                                 // odpowiedź serwera na prośbę o pozwolenie na przesłanie tekstu do serwera
                                 if (packet.getBool())
-                                    display();
+                                    displayRequestWithTextPopup();
                                 else
                                     addLog("Serwer odmowil zadanie o pozwolenia na przeslanie pliku.");
 
@@ -442,7 +448,7 @@ public class KlientGUI extends JFrame {
 
         public JProgressBar progress;
         JPanel color, panelWithNick;
-        JLabel labelWithNick, labelWithPlace;
+        JLabel labelWithNick, labelWithPlace, labelWithAP;
         JButton[] btns = new JButton[3];
         int panelId;
 
@@ -470,7 +476,7 @@ public class KlientGUI extends JFrame {
 
             JPanel btnsBox = new JPanel(new GridLayout(0, 4));
 
-            JLabel labelWithAP = new JLabel("", SwingConstants.CENTER); // 0
+            labelWithAP = new JLabel("", SwingConstants.CENTER); // 0
             labelWithAP.setFont(new Font("Consolas", Font.PLAIN, 22));
             labelWithAP.setPreferredSize(new Dimension(40, 40));
 
@@ -537,8 +543,10 @@ public class KlientGUI extends JFrame {
         }
 
         public void leave() {
+            this.progress.setValue(0);
             this.labelWithNick.setText("");
             this.panelWithNick.setBackground(Color.decode("#ffcccc"));
+            this.labelWithAP.setText("");
         }
 
         public void setPlace(int place) {
@@ -547,6 +555,27 @@ public class KlientGUI extends JFrame {
 
         public void setPlace(String text) {
             this.labelWithPlace.setText(text);
+        }
+
+        public void resetActionPoints() {
+            this.labelWithAP.setText("0");
+        }
+
+        private int getActionPoints() {
+            return new Integer(this.labelWithAP.getText());
+        }
+
+        private void setActionPoints(int value) {
+            this.labelWithAP.setText(Integer.toString(value));
+        }
+
+        public boolean tryChangeActionPoints(int changeValue) {
+            int newValue = this.getActionPoints() - changeValue;
+            if (newValue >= 0) {
+                this.setActionPoints(newValue);
+                return true;
+            } else
+                return false;
         }
 
         private class Umiejetnosc implements ActionListener {

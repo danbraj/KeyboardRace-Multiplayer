@@ -50,23 +50,7 @@ class Packet implements Serializable {
         return this.command;
     }
 
-    public String getParameter() {
-        return this.paramString;
-    }
-
     public int getPlayerId() {
-        return this.senderId;
-    }
-
-    public boolean getExtra() {
-        return this.paramBool;
-    }
-
-    public int getProgress() {
-        return this.paramInt;
-    }
-
-    public int getSenderId() {
         return this.senderId;
     }
 

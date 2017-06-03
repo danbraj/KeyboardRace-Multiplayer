@@ -14,13 +14,13 @@ public class SerwerGUI extends JFrame {
     private JTextArea logs;
 
     private int portNumber = 2345;
-    private boolean isAllowAppendix = Consts.IS_ALLOW_APPENDIX;
+    private boolean isEnabledSendingTextsByClients = Consts.ALLOWED_SENDING_TEXTS_BY_CLIENTS;
     private int status = 0;
 
     private ArrayList<Connection> clients = new ArrayList<Connection>(Consts.MAX_PLAYERS);
 
     private LinkedList<String> sendedTasks = new LinkedList<String>();
-    private AtomicInteger tasksCount = new AtomicInteger(Consts.MAX_TEXTS_QUEUE);
+    private AtomicInteger tasksCount = new AtomicInteger(Consts.MAX_COUNT_TEXTS_IN_QUEUE);
 
     private ArrayList<Player> leaderboard = new ArrayList<>(Consts.MAX_PLAYERS);
     private int place = 0;
@@ -99,7 +99,7 @@ public class SerwerGUI extends JFrame {
                         text = sendedTasks.poll();
                     }
 
-                    if (tasksCount.incrementAndGet() >= Consts.MAX_TEXTS_QUEUE)
+                    if (tasksCount.incrementAndGet() >= Consts.MAX_COUNT_TEXTS_IN_QUEUE)
                         btnTasks.setEnabled(false);
 
                     btnTasks.setText("Pokaz odebrane zadania (" + sendedTasks.size() + ")");
@@ -384,7 +384,7 @@ public class SerwerGUI extends JFrame {
                             } else if (command == Command.SEND_TEXT_REQUEST) {
 
                                 // jeżeli ustawiono w konfiguracji możliwość wysyłania tekstów to..
-                                if (isAllowAppendix) {
+                                if (isEnabledSendingTextsByClients) {
                                     synchronized (tasksCount) {
                                         // jeżeli nie został osiągnięty limit tekstów w poczekalni to..
                                         if (tasksCount.get() > 0) {

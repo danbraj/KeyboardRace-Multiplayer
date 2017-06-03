@@ -30,17 +30,8 @@ class ObslugaPlikow {
         try {
             File folder = new File("Texts");
             for (File file : folder.listFiles()) {
-                if (!file.isDirectory() && ObslugaPlikow.getFileExtension(file).equals("txt")) {
-                    // System.out.println(file.getName());
-                    // try {
-                    //     String fileText = new Scanner(file, "UTF-8").useDelimiter("\\A").next();
-                    //     System.out.println(fileText);
-                    // } catch (IOException e) {
-                    //     System.out.println("Blad odczytu pliku.");
-                    //     System.exit(2);
-                    // }
+                if (!file.isDirectory() && ObslugaPlikow.getFileExtension(file).equals("txt"))
                     files.add(file);
-                }
             }
         } catch (NullPointerException e) {
             System.out.println("Nie ma katalogu (Texts).");
