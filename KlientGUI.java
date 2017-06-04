@@ -22,6 +22,8 @@ public class KlientGUI extends JFrame {
     private int playerId;
 
     private Zadanie zadanie;
+    private int typedChars = 0;
+
     private Klient client;
 
     public KlientGUI() {
@@ -101,7 +103,10 @@ public class KlientGUI extends JFrame {
                         text.setText("");
                         input.setText("");
                     } else {
-                        text.replaceRange(null, 0, stringToCut.length() + 1);
+                        //text.replaceRange(null, 0, stringToCut.length() + 1);
+                        typedChars += stringToCut.length() + 1;
+                        //text.setText(zadanie.getText().substring(typedChars));
+                        text.setText(text.getText().substring(stringToCut.length() + 1));
                         input.setText("");
                     }
                 }
@@ -391,6 +396,8 @@ public class KlientGUI extends JFrame {
                                 btnReady.setEnabled(false);
                                 btnLogon.setEnabled(false);
 
+                                typedChars = 0;
+
                                 text.setText(zadanie.getText());
                                 input.setEnabled(true);
                                 input.requestFocus();
@@ -427,6 +434,8 @@ public class KlientGUI extends JFrame {
 
                                 addLog(content);
 
+                                typedChars = 0;
+
                                 // zresetowanie ui paneli graczy
                                 btnLogon.setEnabled(true);
                                 btnReady.setEnabled(true);
@@ -444,30 +453,46 @@ public class KlientGUI extends JFrame {
 
                                 int targetId = packet.getInt();
                                 Debuff debuff = packet.getDebuff();
+                                int durationTime;
+                                if (debuff == Debuff.INVISIBILITY) {
+                                    panelGracza[targetId].setSkillActivity(0, true);
+                                    durationTime = Variety.HIDE_INPUT_CONTENT.getDurationTime();
+                                } else if (debuff == Debuff.REVERSE) {
+                                    panelGracza[targetId].setSkillActivity(1, true);
+                                    durationTime = Variety.REVERSE_WORDS_IN_TEXT.getDurationTime();
+                                } else if (debuff == Debuff.SHUFFLE) {
+                                    panelGracza[targetId].setSkillActivity(2, true);
+                                    durationTime = Variety.SHUFFLE_CHARS_IN_WORDS.getDurationTime();
+                                } else
+                                    durationTime = 5;
 
-                                panelGracza[targetId].setSkillActivity(0, true);
                                 if (playerId == targetId) {
                                     castDebuff(debuff);
                                     new java.util.Timer().schedule(new java.util.TimerTask() {
                                         public void run() {
 
                                             try {
-                                                client.sendToSerwer.writeObject(new Packet(Command.DEBUFF_CLEAR,
-                                                        Debuff.INVISIBILITY, targetId));
+                                                client.sendToSerwer.writeObject(
+                                                        new Packet(Command.DEBUFF_CLEAR, debuff, targetId));
                                                 client.sendToSerwer.flush();
                                             } catch (IOException ex) {
                                                 addLog(ex.toString());
                                             }
                                             clearDebuff(debuff);
                                         }
-                                    }, 5000);
+                                    }, durationTime * 1000);
                                 }
 
                             } else if (command == Command.DEBUFF_CLEAR) {
 
                                 int targetId = packet.getInt();
                                 Debuff debuff = packet.getDebuff();
-                                panelGracza[targetId].setSkillActivity(0, false);
+                                if (debuff == Debuff.INVISIBILITY)
+                                    panelGracza[targetId].setSkillActivity(0, false);
+                                else if (debuff == Debuff.REVERSE)
+                                    panelGracza[targetId].setSkillActivity(1, false);
+                                else if (debuff == Debuff.SHUFFLE)
+                                    panelGracza[targetId].setSkillActivity(2, false);
                             }
                             sendToSerwer.flush();
                         }
@@ -497,11 +522,19 @@ public class KlientGUI extends JFrame {
     public void castDebuff(Debuff d) {
         if (d == Debuff.INVISIBILITY)
             this.castInvisibilityDebuff();
+        else if (d == Debuff.REVERSE)
+            this.castReverseDebuff();
+        else if (d == Debuff.SHUFFLE)
+            this.castShuffleDebuff();
     }
 
     public void clearDebuff(Debuff d) {
         if (d == Debuff.INVISIBILITY)
             this.clearInvisibilityDebuff();
+        else if (d == Debuff.REVERSE)
+            this.clearReverseDebuff();
+        else if (d == Debuff.SHUFFLE)
+            this.clearShuffleDebuff();
     }
 
     private void castInvisibilityDebuff() {
@@ -510,6 +543,61 @@ public class KlientGUI extends JFrame {
 
     private void clearInvisibilityDebuff() {
         input.setForeground(Color.BLACK);
+    }
+
+    private void castReverseDebuff() {
+        text.setText(this.mirror(text.getText()));
+    }
+
+    private void clearReverseDebuff() {
+        text.setText(zadanie.getText().substring(typedChars));
+    }
+
+    private void castShuffleDebuff() {
+        text.setText(this.shuffle(text.getText()));
+    }
+
+    private void clearShuffleDebuff() {
+         text.setText(zadanie.getText().substring(typedChars));
+    }
+
+    private String mirror(String content) {
+        String reversedContent = new StringBuilder(content).reverse().toString();
+        String[] words = reversedContent.split(" ");
+
+        StringBuilder result = new StringBuilder("");
+        for (int i = words.length - 1; i >= 0; i--)
+            result.append(words[i] + " ");
+        return result.toString();
+    }
+
+    private String shuffle(String content) {
+
+        String[] tablica = content.split(" ");
+        Random random = new Random();
+        String result = "";
+        int i = 0;
+        while (i < tablica.length) {
+            char[] tablicaznakow = tablica[i].toCharArray();
+
+            //info polskie znaki diakrytyczne traktowane jako nie litera!
+            //System.out.println((Character.isLetter(tablicaznakow[tablicaznakow.length - 1]) ? "+" : "-") + " " + tablica[i]);
+
+            int dlugoscznakow = tablicaznakow.length;
+            for (int j = 1; j < dlugoscznakow; j++) {
+                int zmiana = j + random.nextInt(dlugoscznakow - j);
+                char temp = tablicaznakow[j];
+                if ((dlugoscznakow - 1) != zmiana) {
+                    if (zmiana > 0) {
+                        tablicaznakow[j] = tablicaznakow[zmiana];
+                        tablicaznakow[zmiana] = temp;
+                    }
+                }
+            }
+            result = result + String.valueOf(tablicaznakow) + " ";
+            i++;
+        }
+        return result;
     }
 
     private class PanelPlayer extends JPanel {
@@ -674,14 +762,14 @@ public class KlientGUI extends JFrame {
         }
 
         private void setSkillActivity(int idSkill, boolean activity) {
-            if (activity)
-                if (idSkill == 0) 
+            if (activity) {
+                if (idSkill == 0)
                     this.btns[idSkill].setBackground(Variety.HIDE_INPUT_CONTENT.getColor());
                 else if (idSkill == 1)
                     this.btns[idSkill].setBackground(Variety.REVERSE_WORDS_IN_TEXT.getColor());
                 else if (idSkill == 2)
                     this.btns[idSkill].setBackground(Variety.SHUFFLE_CHARS_IN_WORDS.getColor());
-            else
+            } else
                 this.btns[idSkill].setBackground(null);
         }
 
@@ -698,15 +786,24 @@ public class KlientGUI extends JFrame {
                         } catch (IOException ex) {
                             addLog(ex.toString());
                         }
-                        addLog(Debuff.INVISIBILITY + "\nSender: " + playerId + "\nTarget: " + panelId);
                     }
                 } else if (e.getSource() == btns[1]) {
                     if (updateSkillsAvailability(Debuff.REVERSE)) {
-                        addLog(Debuff.REVERSE + "\nSender: " + playerId + "\nTarget: " + panelId);
+                        try {
+                            client.sendToSerwer.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
+                            client.sendToSerwer.flush();
+                        } catch (IOException ex) {
+                            addLog(ex.toString());
+                        }
                     }
                 } else if (e.getSource() == btns[2]) {
                     if (updateSkillsAvailability(Debuff.SHUFFLE)) {
-                        addLog(Debuff.SHUFFLE + "\nSender: " + playerId + "\nTarget: " + panelId);
+                        try {
+                            client.sendToSerwer.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
+                            client.sendToSerwer.flush();
+                        } catch (IOException ex) {
+                            addLog(ex.toString());
+                        }
                     }
                 }
             }
