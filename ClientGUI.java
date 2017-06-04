@@ -7,12 +7,12 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-public class KlientGUI extends JFrame {
+public class ClientGUI extends JFrame {
 
     private JTextArea text, logs;
     private JPanel panelGraczy, panelGry, panelBoczny, panelLogowania, panelDodatkowy;
     private JTextField host, input;
-    private JButton btnHowToPlay, btnAddToSerwer, btnReady, btnLogon;
+    private JButton btnHowToPlay, btnAddToServer, btnReady, btnLogon;
     private JLabel lbStatus;
 
     private String hostname = "localhost:2345";
@@ -24,9 +24,9 @@ public class KlientGUI extends JFrame {
     private Zadanie zadanie;
     private int typedChars = 0;
 
-    private Klient client;
+    private Client client;
 
-    public KlientGUI() {
+    public ClientGUI() {
         super("Klient " + Consts.VERSION);
         setSize(880, 600);
         setMinimumSize(new Dimension(640, 600));
@@ -68,8 +68,8 @@ public class KlientGUI extends JFrame {
 
                     panelGracza[playerId].setProgressValue(zadanie.getProgress());
                     try {
-                        client.sendToSerwer.writeObject(new Packet(Command.PROGRESS, playerId, zadanie.getProgress()));
-                        client.sendToSerwer.flush();
+                        client.sendToServer.writeObject(new Packet(Command.PROGRESS, playerId, zadanie.getProgress()));
+                        client.sendToServer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
                     }
@@ -95,8 +95,8 @@ public class KlientGUI extends JFrame {
                     if (zadanie.isSuccess) {
                         input.setEnabled(false);
                         try {
-                            client.sendToSerwer.writeObject(new Packet(Command.WIN, playerId));
-                            client.sendToSerwer.flush();
+                            client.sendToServer.writeObject(new Packet(Command.WIN, playerId));
+                            client.sendToServer.flush();
                         } catch (IOException ex) {
                             addLog(ex.toString());
                         }
@@ -148,9 +148,9 @@ public class KlientGUI extends JFrame {
         Obsluga obsluga = new Obsluga();
         btnHowToPlay = new JButton("Jak grac?");
         btnHowToPlay.setEnabled(false); // tmp
-        btnAddToSerwer = new JButton("Dodaj tekst do gry");
-        btnAddToSerwer.addActionListener(obsluga);
-        btnAddToSerwer.setEnabled(false);
+        btnAddToServer = new JButton("Dodaj tekst do gry");
+        btnAddToServer.addActionListener(obsluga);
+        btnAddToServer.setEnabled(false);
         btnReady = new JButton("Gotowosc");
         btnReady.addActionListener(obsluga);
         btnReady.setEnabled(false);
@@ -159,7 +159,7 @@ public class KlientGUI extends JFrame {
         btnLogon.addActionListener(obsluga);
 
         panelDodatkowy.add(btnLogon);
-        panelDodatkowy.add(btnAddToSerwer);
+        panelDodatkowy.add(btnAddToServer);
         panelDodatkowy.add(btnReady);
         panelDodatkowy.add(btnHowToPlay);
 
@@ -182,8 +182,8 @@ public class KlientGUI extends JFrame {
             public void windowClosing(WindowEvent e) {
                 if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
                     try {
-                        client.sendToSerwer.writeObject(new Packet(Command.LOGOUT));
-                        client.sendToSerwer.flush();
+                        client.sendToServer.writeObject(new Packet(Command.LOGOUT));
+                        client.sendToServer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
                     }
@@ -211,15 +211,15 @@ public class KlientGUI extends JFrame {
 
         if (result == JOptionPane.OK_OPTION) {
             try {
-                client.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT, ta.getText()));
-                client.sendToSerwer.flush();
+                client.sendToServer.writeObject(new Packet(Command.SEND_TEXT, ta.getText()));
+                client.sendToServer.flush();
             } catch (IOException ex) {
                 addLog(ex.toString());
             }
         } else {
             try {
-                client.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT, ""));
-                client.sendToSerwer.flush();
+                client.sendToServer.writeObject(new Packet(Command.SEND_TEXT, ""));
+                client.sendToServer.flush();
             } catch (IOException ex) {
                 addLog(ex.toString());
             }
@@ -230,30 +230,30 @@ public class KlientGUI extends JFrame {
 
         public void actionPerformed(ActionEvent e) {
 
-            if (e.getSource() == btnAddToSerwer) {
+            if (e.getSource() == btnAddToServer) {
                 try {
-                    client.sendToSerwer.writeObject(new Packet(Command.SEND_TEXT_REQUEST));
-                    client.sendToSerwer.flush();
+                    client.sendToServer.writeObject(new Packet(Command.SEND_TEXT_REQUEST));
+                    client.sendToServer.flush();
                 } catch (IOException ex) {
                     addLog(ex.toString());
                 }
             } else if (e.getSource() == btnReady) {
                 try {
-                    client.sendToSerwer.writeObject(new Packet(Command.CHANGE_READY));
-                    client.sendToSerwer.flush();
+                    client.sendToServer.writeObject(new Packet(Command.CHANGE_READY));
+                    client.sendToServer.flush();
                 } catch (IOException ex) {
                     addLog(ex.toString());
                 }
             } else if (e.getSource() == btnLogon) {
                 if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
                     try {
-                        client.sendToSerwer.writeObject(new Packet(Command.LOGOUT));
-                        client.sendToSerwer.flush();
+                        client.sendToServer.writeObject(new Packet(Command.LOGOUT));
+                        client.sendToServer.flush();
                     } catch (IOException ex) {
                         addLog(ex.toString());
                     }
                 } else {
-                    client = new Klient();
+                    client = new Client();
                     client.start();
                 }
             }
@@ -264,7 +264,7 @@ public class KlientGUI extends JFrame {
     private void updateUI() {
         if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
             host.setEnabled(false);
-            btnAddToSerwer.setEnabled(true);
+            btnAddToServer.setEnabled(true);
 
             btnLogon.setText("Rozlacz");
             lbStatus.setText("Status: polaczony");
@@ -275,7 +275,7 @@ public class KlientGUI extends JFrame {
             text.setText("");
 
             host.setEnabled(true);
-            btnAddToSerwer.setEnabled(false);
+            btnAddToServer.setEnabled(false);
             btnLogon.setEnabled(true);
             btnReady.setEnabled(false);
 
@@ -288,30 +288,30 @@ public class KlientGUI extends JFrame {
         }
     }
 
-    private class Klient extends Thread {
+    private class Client extends Thread {
 
         private Socket socket;
-        private ObjectInputStream receiveFromSerwer;
-        private ObjectOutputStream sendToSerwer;
+        private ObjectInputStream receiveFromServer;
+        private ObjectOutputStream sendToServer;
 
         public void run() {
             try {
                 String[] hostParameters = host.getText().split(":", 2);
                 socket = new Socket(hostParameters[0], new Integer(hostParameters[1]));
-                sendToSerwer = new ObjectOutputStream(socket.getOutputStream());
-                receiveFromSerwer = new ObjectInputStream(socket.getInputStream());
+                sendToServer = new ObjectOutputStream(socket.getOutputStream());
+                receiveFromServer = new ObjectInputStream(socket.getInputStream());
 
                 status = status | Consts.CONNECTED;
                 updateUI();
 
-                sendToSerwer.writeObject(new Packet(Command.LOGIN_REQUEST));
-                sendToSerwer.flush();
+                sendToServer.writeObject(new Packet(Command.LOGIN_REQUEST));
+                sendToServer.flush();
 
                 Packet packet = null;
                 while ((status & Consts.CONNECTED) == Consts.CONNECTED) {
 
                     try {
-                        packet = (Packet) receiveFromSerwer.readObject();
+                        packet = (Packet) receiveFromServer.readObject();
                         if (packet != null) {
 
                             Command command = packet.getCommand();
@@ -322,14 +322,14 @@ public class KlientGUI extends JFrame {
                                 if (nick != null) {
                                     nick = nick.trim().toUpperCase();
                                     if (nick.equals("")) {
-                                        sendToSerwer.writeObject(new Packet(Command.LOGOUT));
+                                        sendToServer.writeObject(new Packet(Command.LOGOUT));
                                         addLog("Niepoprawny nick, zostales rozlaczony.");
                                     } else {
                                         // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
                                         if (nick.length() > 6)
                                             nick = nick.substring(0, 6);
 
-                                        sendToSerwer.writeObject(new Packet(Command.NICK_SET, nick));
+                                        sendToServer.writeObject(new Packet(Command.NICK_SET, nick));
 
                                         playerId = packet.getPlayerId();
                                         panelGracza[playerId].resetActionPoints();
@@ -337,7 +337,7 @@ public class KlientGUI extends JFrame {
                                         btnReady.setEnabled(true);
                                     }
                                 } else {
-                                    sendToSerwer.writeObject(new Packet(Command.LOGOUT));
+                                    sendToServer.writeObject(new Packet(Command.LOGOUT));
                                     addLog("Wylogowano.");
                                 }
 
@@ -472,9 +472,9 @@ public class KlientGUI extends JFrame {
                                         public void run() {
 
                                             try {
-                                                client.sendToSerwer.writeObject(
+                                                client.sendToServer.writeObject(
                                                         new Packet(Command.DEBUFF_CLEAR, debuff, targetId));
-                                                client.sendToSerwer.flush();
+                                                client.sendToServer.flush();
                                             } catch (IOException ex) {
                                                 addLog(ex.toString());
                                             }
@@ -494,7 +494,7 @@ public class KlientGUI extends JFrame {
                                 else if (debuff == Debuff.SHUFFLE)
                                     panelGracza[targetId].setSkillActivity(2, false);
                             }
-                            sendToSerwer.flush();
+                            sendToServer.flush();
                         }
                     } catch (ClassNotFoundException ex) {
                     }
@@ -509,8 +509,8 @@ public class KlientGUI extends JFrame {
                 addLog(e.toString());
             } finally {
                 try {
-                    receiveFromSerwer.close();
-                    sendToSerwer.close();
+                    receiveFromServer.close();
+                    sendToServer.close();
                     socket.close();
                 } catch (IOException e) {
                 } catch (NullPointerException e) {
@@ -780,9 +780,9 @@ public class KlientGUI extends JFrame {
                 if (e.getSource() == btns[0]) {
                     if (updateSkillsAvailability(Debuff.INVISIBILITY)) {
                         try {
-                            client.sendToSerwer
+                            client.sendToServer
                                     .writeObject(new Packet(Command.DEBUFF_CAST, Debuff.INVISIBILITY, panelId));
-                            client.sendToSerwer.flush();
+                            client.sendToServer.flush();
                         } catch (IOException ex) {
                             addLog(ex.toString());
                         }
@@ -790,8 +790,8 @@ public class KlientGUI extends JFrame {
                 } else if (e.getSource() == btns[1]) {
                     if (updateSkillsAvailability(Debuff.REVERSE)) {
                         try {
-                            client.sendToSerwer.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
-                            client.sendToSerwer.flush();
+                            client.sendToServer.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
+                            client.sendToServer.flush();
                         } catch (IOException ex) {
                             addLog(ex.toString());
                         }
@@ -799,8 +799,8 @@ public class KlientGUI extends JFrame {
                 } else if (e.getSource() == btns[2]) {
                     if (updateSkillsAvailability(Debuff.SHUFFLE)) {
                         try {
-                            client.sendToSerwer.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
-                            client.sendToSerwer.flush();
+                            client.sendToServer.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
+                            client.sendToServer.flush();
                         } catch (IOException ex) {
                             addLog(ex.toString());
                         }
@@ -846,6 +846,6 @@ public class KlientGUI extends JFrame {
     }
 
     public static void main(String[] args) {
-        new KlientGUI();
+        new ClientGUI();
     }
 }

@@ -7,9 +7,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.*;
 
-public class SerwerGUI extends JFrame {
+public class ServerGUI extends JFrame {
 
-    private JButton btnRunSerwer, btnTasks;
+    private JButton btnRunServer, btnTasks;
     private JTextField port;
     private JTextArea logs;
 
@@ -26,14 +26,14 @@ public class SerwerGUI extends JFrame {
     private int place = 0;
     private int playersCount = 0;
 
-    public SerwerGUI() {
+    public ServerGUI() {
 
         super("Serwer " + Consts.VERSION);
         setSize(450, 320);
         setMinimumSize(new Dimension(450, 320));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-
+        
         Obsluga obsluga = new Obsluga();
 
         // -- panel górny
@@ -44,13 +44,13 @@ public class SerwerGUI extends JFrame {
         logs.setEditable(false);
 
         port = new JTextField((new Integer(portNumber)).toString(), 8);
-        btnRunSerwer = new JButton("Uruchom");
-        btnRunSerwer.setPreferredSize(new Dimension(120, 30));
-        btnRunSerwer.addActionListener(obsluga);
+        btnRunServer = new JButton("Uruchom");
+        btnRunServer.setPreferredSize(new Dimension(120, 30));
+        btnRunServer.addActionListener(obsluga);
 
         panel.add(new JLabel("Port: "));
         panel.add(port);
-        panel.add(btnRunSerwer);
+        panel.add(btnRunServer);
 
         // -- panel dolny
         btnTasks = new JButton("Pokaz odebrane zadania (0)");
@@ -71,24 +71,24 @@ public class SerwerGUI extends JFrame {
 
     private class Obsluga implements ActionListener {
 
-        private Serwer serwer;
+        private Server server;
 
         public void actionPerformed(ActionEvent e) {
-            if (e.getSource() == btnRunSerwer) {
+            if (e.getSource() == btnRunServer) {
                 status ^= Consts.RUNNING;
                 if ((status & Consts.RUNNING) == Consts.RUNNING) {
 
                     for (int i = 0; i < Consts.MAX_PLAYERS; i++)
                         clients.set(i, null);
 
-                    serwer = new Serwer();
-                    serwer.start();
-                    btnRunSerwer.setText("Zatrzymaj");
+                    server = new Server();
+                    server.start();
+                    btnRunServer.setText("Zatrzymaj");
                     port.setEnabled(false);
                 } else {
-                    serwer.terminate();
+                    server.terminate();
                     status = status & ~Consts.STARTED;
-                    btnRunSerwer.setText("Uruchom");
+                    btnRunServer.setText("Uruchom");
                     port.setEnabled(true);
                 }
             } else if (e.getSource() == btnTasks) {
@@ -103,13 +103,14 @@ public class SerwerGUI extends JFrame {
                         btnTasks.setEnabled(false);
 
                     btnTasks.setText("Pokaz odebrane zadania (" + sendedTasks.size() + ")");
-                    showPopupWithText(text);
+                    displayResponseWithTextPopup(text);
                 }
             }
         }
     }
 
-    private void showPopupWithText(String text) {
+    // wyświetlenie popupa z tekstem wysłanym przez klienta
+    private void displayResponseWithTextPopup(String text) {
 
         JTextArea ta = new JTextArea(text);
         ta.setLineWrap(true);
@@ -130,14 +131,14 @@ public class SerwerGUI extends JFrame {
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
         if (result == JOptionPane.YES_OPTION) {
-            ObslugaPlikow.stringToFile(tf.getText() + ".txt", ta.getText());
+            FilesService.stringToFile(tf.getText() + ".txt", ta.getText());
             // todo obsługa błędów i sprawdzić poprawność nazwy pliku
         }
     }
 
-    private class Serwer extends Thread {
+    private class Server extends Thread {
 
-        private ServerSocket serwer;
+        private ServerSocket server;
 
         public void terminate() {
             try {
@@ -154,7 +155,7 @@ public class SerwerGUI extends JFrame {
                         }
                     }
                 }
-                serwer.close();//
+                server.close();
                 addLog("Wszystkie polaczenie zostaly zakonczone.");
             } catch (IOException e) {
             }
@@ -162,12 +163,12 @@ public class SerwerGUI extends JFrame {
 
         public void run() {
             try {
-                serwer = new ServerSocket(new Integer(port.getText()));
-                addLog("Serwer uruchomiony na porcie: " + serwer.getLocalPort());
+                server = new ServerSocket(new Integer(port.getText()));
+                addLog("Serwer uruchomiony na porcie: " + server.getLocalPort());
                 addLog("Maksymalna pojemnosc serwera to " + clients.size() + " miejsc.");
 
                 while ((status & Consts.RUNNING) == Consts.RUNNING) {
-                    Socket socket = serwer.accept();
+                    Socket socket = server.accept();
                     new Connection(socket).start();
                 }
             } catch (SocketException e) {
@@ -175,8 +176,8 @@ public class SerwerGUI extends JFrame {
                 addLog(e.toString());
             } finally {
                 try {
-                    if (serwer != null) {
-                        serwer.close();
+                    if (server != null) {
+                        server.close();
                     }
                 } catch (IOException e) {
                     addLog(e.toString());
@@ -412,6 +413,7 @@ public class SerwerGUI extends JFrame {
 
                             } else if (command == Command.DEBUFF_CAST || command == Command.DEBUFF_CLEAR) {
 
+                                // przekazanie otrzymanego pakietu do wszystkich klientów
                                 for (Connection client : clients)
                                     if (client != null)
                                         client.sendToClient.writeObject(packet);
@@ -436,7 +438,7 @@ public class SerwerGUI extends JFrame {
 
     // funkcja losująca zadanie (tekst do przepisania) ze zbioru plików w folderze Texts
     private Zadanie randomizeTask() {
-        ArrayList<File> files = ObslugaPlikow.getFiles();
+        ArrayList<File> files = FilesService.getFiles();
         if (!files.isEmpty()) {
             int filesCount = files.size();
             int randomIndex = new Random().nextInt(filesCount);
@@ -463,6 +465,6 @@ public class SerwerGUI extends JFrame {
     }
 
     public static void main(String[] args) {
-        new SerwerGUI();
+        new ServerGUI();
     }
 }

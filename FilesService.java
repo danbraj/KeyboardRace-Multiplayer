@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 import java.lang.*;
 
-class ObslugaPlikow {
+class FilesService {
 
     public static String getFileExtension(File file) {
         String fileName = file.getName();
@@ -30,7 +30,7 @@ class ObslugaPlikow {
         try {
             File folder = new File("Texts");
             for (File file : folder.listFiles()) {
-                if (!file.isDirectory() && ObslugaPlikow.getFileExtension(file).equals("txt"))
+                if (!file.isDirectory() && FilesService.getFileExtension(file).equals("txt"))
                     files.add(file);
             }
         } catch (NullPointerException e) {
