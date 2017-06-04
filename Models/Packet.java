@@ -1,7 +1,8 @@
-import java.io.Serializable;
-import java.util.ArrayList;
+package Models;
 
-class Packet implements Serializable {
+import java.io.Serializable;
+
+public class Packet implements Serializable {
 
     Command command;
     int senderId = -1;
@@ -65,18 +66,6 @@ class Packet implements Serializable {
         return this.senderId;
     }
 
-    public void setAdditional(String value) {
-        this.paramString = value;
-    }
-
-    public void setAdditional(int value) {
-        this.paramInt = value;
-    }
-
-    public void setAdditional(boolean value) {
-        this.paramBool = value;
-    }
-
     public String getString() {
         return this.paramString;
     }
@@ -87,29 +76,5 @@ class Packet implements Serializable {
 
     public boolean getBool() {
         return this.paramBool;
-    }
-}
-
-class ExtendedPacket extends Packet {
-
-    ArrayList<Player> players;
-    Zadanie zadanie;
-
-    public ExtendedPacket(Command command, ArrayList<Player> players) {
-        super(command);
-        this.players = players;
-    }
-
-    public ExtendedPacket(Command command, Zadanie zadanie) {
-        super(command);
-        this.zadanie = zadanie;
-    }
-
-    public ArrayList<Player> getPlayers() {
-        return this.players;
-    }
-
-    public Zadanie getZadanie() {
-        return this.zadanie;
     }
 }

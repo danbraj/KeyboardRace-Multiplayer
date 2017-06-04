@@ -1,3 +1,5 @@
+package Models;
+
 public class Consts {
     public static final String VERSION = "v0.8.1";
     public static final int MAX_PLAYERS = 6;

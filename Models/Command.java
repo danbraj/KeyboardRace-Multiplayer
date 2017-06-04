@@ -1,3 +1,5 @@
+package Models;
+
 public enum Command {
     NONE,
     LOGIN_REQUEST,

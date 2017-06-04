@@ -1,10 +1,12 @@
+package Models;
+
 import java.io.Serializable;
 
-class Player implements Serializable {
+public class Player implements Serializable {
 
+    public boolean isReady = false;
     int playerId = -1;
     String nick = "player";
-    boolean isReady = false;
 
     public Player(int id) {
         this.playerId = id;

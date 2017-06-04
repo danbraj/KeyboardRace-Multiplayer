@@ -1,3 +1,4 @@
+import Models.*;
 import java.io.*;
 import java.net.*;
 import java.util.Vector;
@@ -430,7 +431,7 @@ public class ClientGUI extends JFrame {
                                 ExtendedPacket extendedPacket = (ExtendedPacket) packet;
 
                                 for (Player player : extendedPacket.getPlayers())
-                                    content += "\n" + (counter++) + ". " + player.nick;
+                                    content += "\n" + (counter++) + ". " + player.getNick();
 
                                 addLog(content);
 

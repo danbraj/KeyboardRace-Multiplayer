@@ -1,6 +1,8 @@
+package Models;
+
 import java.io.Serializable;
 
-class Zadanie implements Serializable {
+public class Zadanie implements Serializable {
 
     public boolean isSuccess = false;
     private String text;

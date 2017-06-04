@@ -1,8 +1,10 @@
+package Models;
+
 import java.io.*;
 import java.util.*;
 import java.lang.*;
 
-class FilesService {
+public class FilesService {
 
     public static String getFileExtension(File file) {
         String fileName = file.getName();

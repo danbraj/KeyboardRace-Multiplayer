@@ -1,3 +1,5 @@
+package Models;
+
 public enum Debuff {
     INVISIBILITY,
     REVERSE,
