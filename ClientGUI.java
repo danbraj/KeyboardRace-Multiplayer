@@ -60,13 +60,16 @@ public class ClientGUI extends JFrame {
         input.setFont(new Font("Verdana", Font.PLAIN, 26));
         input.setPreferredSize(new Dimension(450, 42));
         input.setEnabled(false);
+        // ustawienie funkcji klawisza spacja, gdy pole tekstowe jest aktywne
         input.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "space");
         input.getActionMap().put("space", new AbstractAction() {
             public void actionPerformed(ActionEvent evt) {
 
+                // usunięcie pierwszego wyrazu z tekstu, gdy jest zgodny z napisanym w polu tekstowym
                 String stringToCut = input.getText().trim();
                 if (zadanie.ifEqualsGoNext(stringToCut)) {
 
+                    // aktualizacja progresu i wysłanie go do serwera (docelowo do pozostałych klientów)
                     panelGracza[playerId].setProgressValue(zadanie.getProgress());
                     try {
                         client.sendToServer.writeObject(new Packet(Command.PROGRESS, playerId, zadanie.getProgress()));
@@ -75,6 +78,7 @@ public class ClientGUI extends JFrame {
                         addLog(ex.toString());
                     }
 
+                    // aktywacja dostępności umiejętności, gdy osiągnięta została odpowiednia ilość punktów
                     boolean isChanged = false;
                     int idSkill = -1, ap = panelGracza[playerId].addActionPointAndGet();
                     if (ap == Variety.HIDE_INPUT_CONTENT.getCost()) {
@@ -93,6 +97,7 @@ public class ClientGUI extends JFrame {
                             if (pp.panelId != playerId && !pp.getNick().isEmpty())
                                 pp.setSkillAvailability(idSkill, true);
 
+                    // sprawdzenie czy użytkownik ukończył zadanie
                     if (zadanie.isSuccess) {
                         input.setEnabled(false);
                         try {
@@ -104,9 +109,7 @@ public class ClientGUI extends JFrame {
                         text.setText("");
                         input.setText("");
                     } else {
-                        //text.replaceRange(null, 0, stringToCut.length() + 1);
                         typedChars += stringToCut.length() + 1;
-                        //text.setText(zadanie.getText().substring(typedChars));
                         text.setText(text.getText().substring(stringToCut.length() + 1));
                         input.setText("");
                     }
@@ -148,7 +151,7 @@ public class ClientGUI extends JFrame {
 
         Obsluga obsluga = new Obsluga();
         btnHowToPlay = new JButton("Jak grac?");
-        btnHowToPlay.setEnabled(false); // tmp
+        btnHowToPlay.setEnabled(false);
         btnAddToServer = new JButton("Dodaj tekst do gry");
         btnAddToServer.addActionListener(obsluga);
         btnAddToServer.setEnabled(false);
@@ -344,7 +347,7 @@ public class ClientGUI extends JFrame {
 
                             } else if (command == Command.LOGOUT) {
 
-                                // ustawienia ui clienta po wylogowaniu
+                                // ustawienia ui klienta po wylogowaniu
                                 String message = packet.getString();
                                 if (message != null && !message.isEmpty())
                                     addLog(message);
@@ -452,6 +455,7 @@ public class ClientGUI extends JFrame {
 
                             } else if (command == Command.DEBUFF_CAST) {
 
+                                // aktywacja działania urozmaicenia rozgrywki
                                 int targetId = packet.getInt();
                                 Debuff debuff = packet.getDebuff();
                                 int durationTime;
@@ -486,6 +490,7 @@ public class ClientGUI extends JFrame {
 
                             } else if (command == Command.DEBUFF_CLEAR) {
 
+                                // przywrócenie skutków urozmaicenia rozgrywki
                                 int targetId = packet.getInt();
                                 Debuff debuff = packet.getDebuff();
                                 if (debuff == Debuff.INVISIBILITY)
@@ -562,6 +567,7 @@ public class ClientGUI extends JFrame {
          text.setText(zadanie.getText().substring(typedChars));
     }
 
+    // odwrócenie wyrazów w tekście
     private String mirror(String content) {
         String reversedContent = new StringBuilder(content).reverse().toString();
         String[] words = reversedContent.split(" ");
@@ -572,31 +578,55 @@ public class ClientGUI extends JFrame {
         return result.toString();
     }
 
+    // pomieszanie środkowych liter w wyrazach tekstu
     private String shuffle(String content) {
 
-        String[] tablica = content.split(" ");
         Random random = new Random();
+        String badChars = ".,:;!?()";
+
+        String[] words = content.split(" ");
         String result = "";
-        int i = 0;
-        while (i < tablica.length) {
-            char[] tablicaznakow = tablica[i].toCharArray();
+        for (int i = 0; i < words.length; i++) {
 
-            //info polskie znaki diakrytyczne traktowane jako nie litera!
-            //System.out.println((Character.isLetter(tablicaznakow[tablicaznakow.length - 1]) ? "+" : "-") + " " + tablica[i]);
+            char[] chars = words[i].toCharArray();
+            int charsCount = chars.length;
 
-            int dlugoscznakow = tablicaznakow.length;
-            for (int j = 1; j < dlugoscznakow; j++) {
-                int zmiana = j + random.nextInt(dlugoscznakow - j);
-                char temp = tablicaznakow[j];
-                if ((dlugoscznakow - 1) != zmiana) {
+            int start = 0, stop = 0;
+            if (charsCount > 2) {
+
+                for (int j = 0; j < charsCount - 1; j++) {
+                    if (!badChars.contains(Character.toString(chars[j]))) {
+                        start = j + 1;
+                        System.out.print(start + "(" + chars[j + 1] + ")\t");
+                        break;
+                    }
+                }
+
+                for (int j = charsCount - 1; j > 0; j--) {
+                    if (!badChars.contains(Character.toString(chars[j]))) {
+                        stop = j - 1;
+                        System.out.print(stop + "(" + chars[j - 1] + ")\t");
+                        break;
+                    }
+                }
+            } else
+                System.out.print("\t\t");
+
+            System.out.print((start < stop ? "y" : "n") + "\t" + words[i]);
+
+            if (start < stop) {
+                for (int j = start; j < stop; j++) {
+                    int zmiana = j + random.nextInt(stop - j);
+                    char temp = chars[j];
                     if (zmiana > 0) {
-                        tablicaznakow[j] = tablicaznakow[zmiana];
-                        tablicaznakow[zmiana] = temp;
+                        chars[j] = chars[zmiana];
+                        chars[zmiana] = temp;
                     }
                 }
             }
-            result = result + String.valueOf(tablicaznakow) + " ";
-            i++;
+
+            System.out.println("\t\t" + String.valueOf(chars));
+            result = result + String.valueOf(chars) + " ";
         }
         return result;
     }
