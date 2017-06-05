@@ -3,9 +3,9 @@ package Models;
 import java.awt.Color;
 
 public enum Variety {
-    HIDE_INPUT_CONTENT(     Debuff.INVISIBILITY,    'I', 3, 10, Color.YELLOW),
-    REVERSE_WORDS_IN_TEXT(  Debuff.REVERSE,         'R', 5, 25, Color.GREEN),
-    SHUFFLE_CHARS_IN_WORDS( Debuff.SHUFFLE,         'S', 7, 25, Color.BLUE);
+    HIDE_INPUT_CONTENT(     Debuff.INVISIBILITY,    'I', 4,  10, Color.decode("#FFD64D")),   // żółty
+    REVERSE_WORDS_IN_TEXT(  Debuff.REVERSE,         'R', 8,  20, Color.decode("#578CB5")),   // niebieski
+    SHUFFLE_CHARS_IN_WORDS( Debuff.SHUFFLE,         'S', 10, 25, Color.decode("#4FA833"));   // zielony
 
     private final Debuff debuff;
     private final char shortcut;

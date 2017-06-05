@@ -376,7 +376,7 @@ public class ClientGUI extends JFrame {
                                     input.setText("");
                                     text.setText("");
                                 }
-                                panelGracza[playerId].join("-");
+                                panelGracza[playerId].join("");
                                 panelGracza[playerId].setProgressValue(0);
 
                             } else if (command == Command.UPDATE_PLAYERS_LIST) {
