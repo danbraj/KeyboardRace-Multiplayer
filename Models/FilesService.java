@@ -22,7 +22,7 @@ public class FilesService {
             out.write(content);
             out.close();
         } catch (IOException e) {
-            System.out.println("Blad odczytu pliku.");
+            System.out.println("Błąd odczytu pliku.");
             System.exit(2);
         }
     }

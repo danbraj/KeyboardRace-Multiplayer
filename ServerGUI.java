@@ -54,7 +54,7 @@ public class ServerGUI extends JFrame {
         panel.add(btnRunServer);
 
         // -- panel dolny
-        btnTasks = new JButton("Pokaz odebrane zadania (0)");
+        btnTasks = new JButton("Pokaż odebrane zadania (0)");
         btnTasks.setPreferredSize(new Dimension(450, 28));
         btnTasks.setEnabled(false);
         btnTasks.addActionListener(obsluga);
@@ -103,7 +103,7 @@ public class ServerGUI extends JFrame {
                     if (tasksCount.incrementAndGet() >= Consts.MAX_COUNT_TEXTS_IN_QUEUE)
                         btnTasks.setEnabled(false);
 
-                    btnTasks.setText("Pokaz odebrane zadania (" + sendedTasks.size() + ")");
+                    btnTasks.setText("Pokaż odebrane zadania (" + sendedTasks.size() + ")");
                     displayResponseWithTextPopup(text);
                 }
             }
@@ -121,14 +121,14 @@ public class ServerGUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         JPanel panel2 = new JPanel(new GridLayout(0, 1));
 
-        panel.add(new JLabel("Tresc zadania:"), BorderLayout.NORTH);
+        panel.add(new JLabel("Treść zadania:"), BorderLayout.NORTH);
         panel.add(new JScrollPane(ta), BorderLayout.CENTER);
         panel2.add(new JLabel("Nazwa pliku [ ].txt"));
         panel2.add(tf);
 
         panel.add(panel2, BorderLayout.SOUTH);
 
-        int result = JOptionPane.showConfirmDialog(null, panel, "Prosba o dodanie tekstu do aplikacji",
+        int result = JOptionPane.showConfirmDialog(null, panel, "Prośba o dodanie tekstu do aplikacji",
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
         if (result == JOptionPane.YES_OPTION) {
@@ -147,7 +147,7 @@ public class ServerGUI extends JFrame {
                     if (client != null) {
                         try {
                             client.sendToClient.writeObject(new Packet(Command.LOGOUT, client.player.getPlayerId(),
-                                    "Serwer zostal wylaczony."));
+                                    "Serwer został wyłączony."));
                             client.sendToClient.flush();
                             client.receiveFromClient.close();
                             client.sendToClient.close();
@@ -157,7 +157,7 @@ public class ServerGUI extends JFrame {
                     }
                 }
                 server.close();
-                addLog("Wszystkie polaczenie zostaly zakonczone.");
+                addLog("Wszystkie połączenie zostały zakończone.");
             } catch (IOException e) {
             }
         }
@@ -166,7 +166,7 @@ public class ServerGUI extends JFrame {
             try {
                 server = new ServerSocket(new Integer(port.getText()));
                 addLog("Serwer uruchomiony na porcie: " + server.getLocalPort());
-                addLog("Maksymalna pojemnosc serwera to " + clients.size() + " miejsc.");
+                addLog("Maksymalna pojemność serwera to " + clients.size() + " miejsc.");
 
                 while ((status & Consts.RUNNING) == Consts.RUNNING) {
                     Socket socket = server.accept();
@@ -184,7 +184,7 @@ public class ServerGUI extends JFrame {
                     addLog(e.toString());
                 }
             }
-            addLog("Serwer zostal zatrzymany.");
+            addLog("Serwer został zatrzymany.");
         }
     }
 
@@ -222,7 +222,7 @@ public class ServerGUI extends JFrame {
 
                                     boolean isFreeSlots = false;
 
-                                    addLog("Uzytkownik " + connectionIp + " probuje sie polaczyc.");
+                                    addLog("Użytkownik " + connectionIp + " próbuje się połączyć.");
 
                                     // stwórz gracza i dodaj do listy, jeżeli jest wolne miejsce
                                     synchronized (clients) {
@@ -234,7 +234,7 @@ public class ServerGUI extends JFrame {
 
                                                 sendToClient.writeObject(
                                                         new Packet(Command.LOGIN_RESPONSE, player.getPlayerId()));
-                                                addLog("Uzytkownik " + connectionIp + " zostal polaczony (SLOT "
+                                                addLog("Użytkownik " + connectionIp + " został połączony (SLOT "
                                                         + player.getPlayerId() + ").");
                                                 break;
                                             }
@@ -244,14 +244,14 @@ public class ServerGUI extends JFrame {
                                     if (!isFreeSlots) {
                                         sendToClient.writeObject(
                                                 new Packet(Command.LOGOUT, "Niestety nie ma wolnych miejsc :<"));
-                                        addLog("Uzytkownik " + connectionIp
-                                                + " zostal rozlaczony, z powodu braku wolnego miejsca.");
+                                        addLog("Użytkownik " + connectionIp
+                                                + " został rozłączony, z powodu braku wolnego miejsca.");
                                     }
                                 } else {
                                     sendToClient.writeObject(
-                                            new Packet(Command.LOGOUT, "Niestety rozgrywka juz sie rozpoczela :<"));
-                                    addLog("Uzytkownik " + connectionIp
-                                            + " zostal rozlaczony, poniewaz rozgrywka juz sie rozpoczela.");
+                                            new Packet(Command.LOGOUT, "Niestety rozgrywka już się rozpoczęła :<"));
+                                    addLog("Użytkownik " + connectionIp
+                                            + " został rozłączony, ponieważ rozgrywka już się rozpoczęła.");
                                 }
 
                             } else if (command == Command.LOGOUT) {
@@ -264,8 +264,8 @@ public class ServerGUI extends JFrame {
                                 }
                                 // usunięcie użytkownika z listy użytkowników
                                 sendToClient.writeObject(new Packet(Command.LOGOUT, player.getPlayerId()));//
-                                addLog("Uzytkownik " + socket.getInetAddress().getHostAddress()
-                                        + " zostal rozlaczony (SLOT " + player.getPlayerId() + ").");
+                                addLog("Użytkownik " + socket.getInetAddress().getHostAddress()
+                                        + " został rozłączony (SLOT " + player.getPlayerId() + ").");
 
                                 this.isConnected = false;
                                 synchronized (clients) {
@@ -406,8 +406,8 @@ public class ServerGUI extends JFrame {
                                     synchronized (sendedTasks) {
                                         sendedTasks.offer(text);
                                     }
-                                    addLog("Klient przeslal prosbe z tekstem.");
-                                    btnTasks.setText("Pokaz odebrane zadania (" + sendedTasks.size() + ")");
+                                    addLog("Klient przesłał prośbę z tekstem.");
+                                    btnTasks.setText("Pokaż odebrane zadania (" + sendedTasks.size() + ")");
                                     btnTasks.setEnabled(true);
                                 } else
                                     tasksCount.incrementAndGet();
@@ -445,17 +445,17 @@ public class ServerGUI extends JFrame {
             int randomIndex = new Random().nextInt(filesCount);
             File file = files.get(randomIndex);
 
-            addLog("Serwer wylosowal: [" + randomIndex + "] " + file.getName() + "");
+            addLog("Serwer wylosował: [" + randomIndex + "] " + file.getName() + "");
 
             try {
                 String taskContent = new Scanner(file, "UTF-8").useDelimiter("\\A").next();
                 return new Zadanie(taskContent);
             } catch (IOException e) {
-                addLog("Blad odczytu pliku.");
+                addLog("Błąd odczytu pliku.");
                 System.exit(2);
             }
         } else
-            addLog("Nie ma plikow z tekstami");
+            addLog("Nie ma plików z tekstami");
 
         return null;
     }

@@ -138,7 +138,7 @@ public class ClientGUI extends JFrame {
 
         host = new JTextField(hostname);
         host.setFont(new Font("Verdana", Font.PLAIN, 12));
-        lbStatus = new JLabel("Status: niepolaczony", SwingConstants.RIGHT);
+        lbStatus = new JLabel("Status: niepołączony", SwingConstants.RIGHT);
         lbStatus.setForeground(Color.RED);
 
         panelLogowania.add(new JLabel("Serwer (host:port)"));
@@ -150,15 +150,15 @@ public class ClientGUI extends JFrame {
         panelDodatkowy = new JPanel(new GridLayout(2, 2));
 
         Obsluga obsluga = new Obsluga();
-        btnHowToPlay = new JButton("Jak grac?");
+        btnHowToPlay = new JButton("Jak grać?");
         btnHowToPlay.setEnabled(false);
         btnAddToServer = new JButton("Dodaj tekst do gry");
         btnAddToServer.addActionListener(obsluga);
         btnAddToServer.setEnabled(false);
-        btnReady = new JButton("Gotowosc");
+        btnReady = new JButton("Gotowość");
         btnReady.addActionListener(obsluga);
         btnReady.setEnabled(false);
-        btnLogon = new JButton("Polacz");
+        btnLogon = new JButton("Połącz");
         btnLogon.setPreferredSize(new Dimension(42, 42));
         btnLogon.addActionListener(obsluga);
 
@@ -207,10 +207,10 @@ public class ClientGUI extends JFrame {
         ta.setPreferredSize(new Dimension(600, 300));
 
         JPanel panel = new JPanel(new BorderLayout());
-        panel.add(new JLabel("Tresc zadania:"), BorderLayout.NORTH);
+        panel.add(new JLabel("Treść zadania:"), BorderLayout.NORTH);
         panel.add(new JScrollPane(ta), BorderLayout.CENTER);
 
-        int result = JOptionPane.showConfirmDialog(null, panel, "Dodaj prosbe z tekstem do serwera",
+        int result = JOptionPane.showConfirmDialog(null, panel, "Dodaj prośbę z tekstem do serwera",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
@@ -270,8 +270,8 @@ public class ClientGUI extends JFrame {
             host.setEnabled(false);
             btnAddToServer.setEnabled(true);
 
-            btnLogon.setText("Rozlacz");
-            lbStatus.setText("Status: polaczony");
+            btnLogon.setText("Rozłącz");
+            lbStatus.setText("Status: połączony");
             lbStatus.setForeground(Color.decode("#006600"));
         } else {
             input.setEnabled(false);
@@ -283,8 +283,8 @@ public class ClientGUI extends JFrame {
             btnLogon.setEnabled(true);
             btnReady.setEnabled(false);
 
-            btnLogon.setText("Polacz");
-            lbStatus.setText("Status: niepolaczony");
+            btnLogon.setText("Połącz");
+            lbStatus.setText("Status: niepołączony");
             lbStatus.setForeground(Color.RED);
 
             for (PanelPlayer pp : panelGracza)
@@ -322,12 +322,12 @@ public class ClientGUI extends JFrame {
                             if (command == Command.LOGIN_RESPONSE) {
 
                                 // podanie nazwy użytkownika
-                                String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znakow): ");
+                                String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znaków): ");
                                 if (nick != null) {
                                     nick = nick.trim().toUpperCase();
                                     if (nick.equals("")) {
                                         sendToServer.writeObject(new Packet(Command.LOGOUT));
-                                        addLog("Niepoprawny nick, zostales rozlaczony.");
+                                        addLog("Niepoprawny nick, zostałeś rozłączony.");
                                     } else {
                                         // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
                                         if (nick.length() > 6)
@@ -363,7 +363,7 @@ public class ClientGUI extends JFrame {
                                 status = packet.getBool() ? status | Consts.STARTED : status & ~Consts.STARTED;
                                 if ((status & Consts.STARTED) == Consts.STARTED) {
 
-                                    addLog("Gracz " + panelGracza[playerId].getNick() + " uciekl!");
+                                    addLog("Gracz " + panelGracza[playerId].getNick() + " uciekł!");
 
                                     btnLogon.setEnabled(true);
                                     btnReady.setEnabled(true);
@@ -416,7 +416,7 @@ public class ClientGUI extends JFrame {
                                 int senderId = packet.getPlayerId();
                                 // poinformowanie o ukończeniu zadania przez danego użytkownika
                                 panelGracza[senderId].setPlace(packet.getInt());
-                                addLog("Gracz " + panelGracza[senderId].getNick() + " juz skonczyl!");
+                                addLog("Gracz " + panelGracza[senderId].getNick() + " juz skończył!");
 
                             } else if (command == Command.SEND_TEXT_RESPONSE) {
 
@@ -424,12 +424,12 @@ public class ClientGUI extends JFrame {
                                 if (packet.getBool())
                                     displayRequestWithTextPopup();
                                 else
-                                    addLog("Serwer odmowil zadanie o pozwolenia na przeslanie pliku.");
+                                    addLog("Serwer odmówił żądanie o pozwolenie na przesłanie pliku.");
 
                             } else if (command == Command.RESET) {
 
                                 // ogłoszenie wyników użytkowników
-                                String content = "Tablica wynikow:";
+                                String content = "Tablica wyników:";
                                 int counter = 1;
                                 ExtendedPacket extendedPacket = (ExtendedPacket) packet;
 
@@ -506,9 +506,9 @@ public class ClientGUI extends JFrame {
                     }
                 }
             } catch (UnknownHostException e) {
-                addLog("Blad polaczenia!");
+                addLog("Błąd połączenia!");
             } catch (IOException e) {
-                JOptionPane.showMessageDialog(null, "Prawdopodobnie serwer nie jest wlaczony.", "Informacja",
+                JOptionPane.showMessageDialog(null, "Prawdopodobnie serwer nie jest włączony.", "Informacja",
                         JOptionPane.ERROR_MESSAGE);
                 System.exit(1);
             } catch (NullPointerException e) {
@@ -597,7 +597,6 @@ public class ClientGUI extends JFrame {
                 for (int j = 0; j < charsCount - 1; j++) {
                     if (!badChars.contains(Character.toString(chars[j]))) {
                         start = j + 1;
-                        System.out.print(start + "(" + chars[j + 1] + ")\t");
                         break;
                     }
                 }
@@ -605,14 +604,10 @@ public class ClientGUI extends JFrame {
                 for (int j = charsCount - 1; j > 0; j--) {
                     if (!badChars.contains(Character.toString(chars[j]))) {
                         stop = j - 1;
-                        System.out.print(stop + "(" + chars[j - 1] + ")\t");
                         break;
                     }
                 }
-            } else
-                System.out.print("\t\t");
-
-            System.out.print((start < stop ? "y" : "n") + "\t" + words[i]);
+            }
 
             if (start < stop) {
                 for (int j = start; j < stop; j++) {
@@ -625,7 +620,6 @@ public class ClientGUI extends JFrame {
                 }
             }
 
-            System.out.println("\t\t" + String.valueOf(chars));
             result = result + String.valueOf(chars) + " ";
         }
         return result;
