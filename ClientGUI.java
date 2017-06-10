@@ -358,12 +358,12 @@ public class ClientGUI extends JFrame {
                             } else if (command == Command.LOGOUT_PLAYER_NOTIFY) {
 
                                 // ustawienia ui panela gracza, który się wylogował
-                                int playerId = packet.getPlayerId();
+                                int deserterId = packet.getPlayerId();
 
                                 status = packet.getBool() ? status | Consts.STARTED : status & ~Consts.STARTED;
                                 if ((status & Consts.STARTED) == Consts.STARTED) {
 
-                                    addLog("Gracz " + panelGracza[playerId].getNick() + " uciekł!");
+                                    addLog("Gracz " + panelGracza[deserterId].getNick() + " uciekł!");
 
                                     btnLogon.setEnabled(true);
                                     btnReady.setEnabled(true);
@@ -371,13 +371,17 @@ public class ClientGUI extends JFrame {
                                         pp.setReadiness(false);
                                         pp.setProgressValue(0);
                                         pp.setPlace("");
+                                        pp.setSkillAvailability(0, false);
+                                        pp.setSkillAvailability(1, false);
+                                        pp.setSkillAvailability(2, false);
                                     }
                                     input.setEnabled(false);
                                     input.setText("");
                                     text.setText("");
                                 }
-                                panelGracza[playerId].join("");
-                                panelGracza[playerId].setProgressValue(0);
+                                panelGracza[deserterId].join("");
+                                panelGracza[deserterId].setProgressValue(0);
+                                panelGracza[playerId].resetActionPoints();
 
                             } else if (command == Command.UPDATE_PLAYERS_LIST) {
 
@@ -564,7 +568,7 @@ public class ClientGUI extends JFrame {
     }
 
     private void clearShuffleDebuff() {
-         text.setText(zadanie.getText().substring(typedChars));
+        text.setText(zadanie.getText().substring(typedChars));
     }
 
     // odwrócenie wyrazów w tekście
