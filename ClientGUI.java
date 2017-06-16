@@ -586,7 +586,7 @@ public class ClientGUI extends JFrame {
     private String shuffle(String content) {
 
         Random random = new Random();
-        String badChars = ".,:;!?()";
+        String badChars = ".,:;!?()\"";
 
         String[] words = content.split(" ");
         String result = "";
