@@ -4,9 +4,10 @@ import java.io.Serializable;
 
 public class Player implements Serializable {
 
-    public boolean isReady = false;
+    public boolean isReady;
     int playerId = -1;
-    String nick = "player";
+    String nick = "?";
+    int actionPoints; // nieużywana
 
     public Player(int id) {
         this.playerId = id;

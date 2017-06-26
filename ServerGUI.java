@@ -15,13 +15,13 @@ public class ServerGUI extends JFrame {
     private JTextArea logs;
 
     private int portNumber = 2345;
-    private boolean isEnabledSendingTextsByClients = Consts.ALLOWED_SENDING_TEXTS_BY_CLIENTS;
+    private boolean sendingTextsEnabled = Consts.ALLOWED_SENDING_TEXTS_BY_CLIENTS;
     private int status = 0;
 
     private ArrayList<Connection> clients = new ArrayList<Connection>(Consts.MAX_PLAYERS);
 
     private LinkedList<String> sendedTasks = new LinkedList<String>();
-    private AtomicInteger tasksCount = new AtomicInteger(Consts.MAX_COUNT_TEXTS_IN_QUEUE);
+    private AtomicInteger tasksCount = new AtomicInteger(Consts.MAX_TEXTS_COUNT_IN_QUEUE);
 
     private ArrayList<Player> leaderboard = new ArrayList<>(Consts.MAX_PLAYERS);
     private int place = 0;
@@ -34,7 +34,7 @@ public class ServerGUI extends JFrame {
         setMinimumSize(new Dimension(450, 320));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-        
+
         Obsluga obsluga = new Obsluga();
 
         // -- panel górny
@@ -100,7 +100,7 @@ public class ServerGUI extends JFrame {
                         text = sendedTasks.poll();
                     }
 
-                    if (tasksCount.incrementAndGet() >= Consts.MAX_COUNT_TEXTS_IN_QUEUE)
+                    if (tasksCount.incrementAndGet() >= Consts.MAX_TEXTS_COUNT_IN_QUEUE)
                         btnTasks.setEnabled(false);
 
                     btnTasks.setText("Pokaż odebrane zadania (" + sendedTasks.size() + ")");
@@ -291,9 +291,11 @@ public class ServerGUI extends JFrame {
                                     // aktualizacja użytkownków dla nowego użytkownika 
                                     // poinformowanie innych użytkowników o nowym użytkowniku
                                     for (Connection client : clients) {
-                                        if (client != null)
+                                        if (client != null) {
+                                            client.sendToClient.reset(); // poprawka błędu: niepoprawne wyświetlanie nazwy użytkownka pozostałym użytkownikom, gdy podczas wyboru nazwy dołącza kolejny klient i wyprzedza poprzedniego szybciej wybierając nazwę
                                             client.sendToClient.writeObject(
                                                     new ExtendedPacket(Command.UPDATE_PLAYERS_LIST, players));
+                                        }
                                     }
                                 }
 
@@ -386,7 +388,7 @@ public class ServerGUI extends JFrame {
                             } else if (command == Command.SEND_TEXT_REQUEST) {
 
                                 // jeżeli ustawiono w konfiguracji możliwość wysyłania tekstów to..
-                                if (isEnabledSendingTextsByClients) {
+                                if (sendingTextsEnabled) {
                                     synchronized (tasksCount) {
                                         // jeżeli nie został osiągnięty limit tekstów w poczekalni to..
                                         if (tasksCount.get() > 0) {

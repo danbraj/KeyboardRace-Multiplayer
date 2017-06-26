@@ -10,6 +10,9 @@ import javax.swing.border.EmptyBorder;
 
 public class ClientGUI extends JFrame {
 
+    private Client client;
+    private PanelPlayer[] panelGracza = new PanelPlayer[Consts.MAX_PLAYERS];
+
     private JTextArea text, logs;
     private JPanel panelGraczy, panelGry, panelBoczny, panelLogowania, panelDodatkowy;
     private JTextField host, input;
@@ -18,14 +21,9 @@ public class ClientGUI extends JFrame {
 
     private String hostname = "localhost:2345";
     private int status = 0; // 0 - not connected, 1 - connected
-
-    private PanelPlayer[] panelGracza = new PanelPlayer[Consts.MAX_PLAYERS];
     private int playerId;
-
     private Zadanie zadanie;
     private int typedChars = 0;
-
-    private Client client;
 
     public ClientGUI() {
         super("Klient " + Consts.VERSION);
@@ -72,10 +70,10 @@ public class ClientGUI extends JFrame {
                     // aktualizacja progresu i wysłanie go do serwera (docelowo do pozostałych klientów)
                     panelGracza[playerId].setProgressValue(zadanie.getProgress());
                     try {
-                        client.sendToServer.writeObject(new Packet(Command.PROGRESS, playerId, zadanie.getProgress()));
-                        client.sendToServer.flush();
+                        client.oos.writeObject(new Packet(Command.PROGRESS, playerId, zadanie.getProgress()));
+                        client.oos.flush();
                     } catch (IOException ex) {
-                        addLog(ex.toString());
+                        addToEventLog(ex.toString());
                     }
 
                     // aktywacja dostępności umiejętności, gdy osiągnięta została odpowiednia ilość punktów
@@ -101,10 +99,10 @@ public class ClientGUI extends JFrame {
                     if (zadanie.isSuccess) {
                         input.setEnabled(false);
                         try {
-                            client.sendToServer.writeObject(new Packet(Command.WIN, playerId));
-                            client.sendToServer.flush();
+                            client.oos.writeObject(new Packet(Command.WIN, playerId));
+                            client.oos.flush();
                         } catch (IOException ex) {
-                            addLog(ex.toString());
+                            addToEventLog(ex.toString());
                         }
                         text.setText("");
                         input.setText("");
@@ -186,10 +184,10 @@ public class ClientGUI extends JFrame {
             public void windowClosing(WindowEvent e) {
                 if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
                     try {
-                        client.sendToServer.writeObject(new Packet(Command.LOGOUT));
-                        client.sendToServer.flush();
+                        client.oos.writeObject(new Packet(Command.LOGOUT));
+                        client.oos.flush();
                     } catch (IOException ex) {
-                        addLog(ex.toString());
+                        addToEventLog(ex.toString());
                     }
                 }
                 setVisible(false);
@@ -215,17 +213,17 @@ public class ClientGUI extends JFrame {
 
         if (result == JOptionPane.OK_OPTION) {
             try {
-                client.sendToServer.writeObject(new Packet(Command.SEND_TEXT, ta.getText()));
-                client.sendToServer.flush();
+                client.oos.writeObject(new Packet(Command.SEND_TEXT, ta.getText()));
+                client.oos.flush();
             } catch (IOException ex) {
-                addLog(ex.toString());
+                addToEventLog(ex.toString());
             }
         } else {
             try {
-                client.sendToServer.writeObject(new Packet(Command.SEND_TEXT, ""));
-                client.sendToServer.flush();
+                client.oos.writeObject(new Packet(Command.SEND_TEXT, ""));
+                client.oos.flush();
             } catch (IOException ex) {
-                addLog(ex.toString());
+                addToEventLog(ex.toString());
             }
         }
     }
@@ -236,25 +234,25 @@ public class ClientGUI extends JFrame {
 
             if (e.getSource() == btnAddToServer) {
                 try {
-                    client.sendToServer.writeObject(new Packet(Command.SEND_TEXT_REQUEST));
-                    client.sendToServer.flush();
+                    client.oos.writeObject(new Packet(Command.SEND_TEXT_REQUEST));
+                    client.oos.flush();
                 } catch (IOException ex) {
-                    addLog(ex.toString());
+                    addToEventLog(ex.toString());
                 }
             } else if (e.getSource() == btnReady) {
                 try {
-                    client.sendToServer.writeObject(new Packet(Command.CHANGE_READY));
-                    client.sendToServer.flush();
+                    client.oos.writeObject(new Packet(Command.CHANGE_READY));
+                    client.oos.flush();
                 } catch (IOException ex) {
-                    addLog(ex.toString());
+                    addToEventLog(ex.toString());
                 }
             } else if (e.getSource() == btnLogon) {
                 if ((status & Consts.CONNECTED) == Consts.CONNECTED) {
                     try {
-                        client.sendToServer.writeObject(new Packet(Command.LOGOUT));
-                        client.sendToServer.flush();
+                        client.oos.writeObject(new Packet(Command.LOGOUT));
+                        client.oos.flush();
                     } catch (IOException ex) {
-                        addLog(ex.toString());
+                        addToEventLog(ex.toString());
                     }
                 } else {
                     client = new Client();
@@ -295,156 +293,97 @@ public class ClientGUI extends JFrame {
     private class Client extends Thread {
 
         private Socket socket;
-        private ObjectInputStream receiveFromServer;
-        private ObjectOutputStream sendToServer;
+        private ObjectInputStream ois;
+        private ObjectOutputStream oos;
+
+        public void sendObjectToServer(Packet packet) {
+            this.sendObjectToServer(packet, false);
+        }
+
+        public void sendObjectToServer(Packet packet, boolean reset) {
+            try {
+                if (reset)
+                    oos.reset();
+                oos.writeObject(packet);
+                oos.flush();
+            } catch (IOException e) {
+            }
+        }
+
+        public Object receiveObjectFromServer() {
+            try {
+                return ois.readObject();
+            } catch (ClassNotFoundException e) {
+                return null;
+            } catch (IOException e) {
+                return null;
+            }
+        }
 
         public void run() {
             try {
                 String[] hostParameters = host.getText().split(":", 2);
                 socket = new Socket(hostParameters[0], new Integer(hostParameters[1]));
-                sendToServer = new ObjectOutputStream(socket.getOutputStream());
-                receiveFromServer = new ObjectInputStream(socket.getInputStream());
+                oos = new ObjectOutputStream(socket.getOutputStream());
+                ois = new ObjectInputStream(socket.getInputStream());
 
-                status = status | Consts.CONNECTED;
+                status |= Consts.CONNECTED;
                 updateUI();
 
-                sendToServer.writeObject(new Packet(Command.LOGIN_REQUEST));
-                sendToServer.flush();
+                sendObjectToServer(new Packet(Command.LOGIN_REQUEST));
 
                 Packet packet = null;
                 while ((status & Consts.CONNECTED) == Consts.CONNECTED) {
 
-                    try {
-                        packet = (Packet) receiveFromServer.readObject();
-                        if (packet != null) {
+                    packet = (Packet) receiveObjectFromServer();
+                    if (packet != null) {
 
-                            Command command = packet.getCommand();
-                            if (command == Command.LOGIN_RESPONSE) {
+                        CommunicationService.Client service = new CommunicationService.Client(packet);
 
-                                // podanie nazwy użytkownika
-                                String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znaków): ");
-                                if (nick != null) {
-                                    nick = nick.trim().toUpperCase();
-                                    if (nick.equals("")) {
-                                        sendToServer.writeObject(new Packet(Command.LOGOUT));
-                                        addLog("Niepoprawny nick, zostałeś rozłączony.");
-                                    } else {
-                                        // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
-                                        if (nick.length() > 6)
-                                            nick = nick.substring(0, 6);
+                        Command command = packet.getCommand();
+                        if (command == Command.LOGIN_RESPONSE) {
 
-                                        sendToServer.writeObject(new Packet(Command.NICK_SET, nick));
-
-                                        playerId = packet.getPlayerId();
-                                        panelGracza[playerId].resetActionPoints();
-
-                                        btnReady.setEnabled(true);
-                                    }
+                            // podanie nazwy użytkownika
+                            String nick = JOptionPane.showInputDialog(null, "Podaj nick (max. 6 znaków): ");
+                            if (nick != null) {
+                                nick = nick.trim().toUpperCase();
+                                if (nick.equals("")) {
+                                    sendObjectToServer(new Packet(Command.LOGOUT));
+                                    addToEventLog("Niepoprawny nick, zostałeś rozłączony.");
                                 } else {
-                                    sendToServer.writeObject(new Packet(Command.LOGOUT));
-                                    addLog("Wylogowano.");
-                                }
+                                    // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
+                                    if (nick.length() > 6)
+                                        nick = nick.substring(0, 6);
 
-                            } else if (command == Command.LOGOUT) {
+                                    sendObjectToServer(new Packet(Command.NICK_SET, nick));
 
-                                // ustawienia ui klienta po wylogowaniu
-                                String message = packet.getString();
-                                if (message != null && !message.isEmpty())
-                                    addLog(message);
+                                    playerId = packet.getPlayerId();
+                                    panelGracza[playerId].resetActionPoints();
 
-                                status = status & ~Consts.CONNECTED;
-                                updateUI();
-
-                            } else if (command == Command.LOGOUT_PLAYER_NOTIFY) {
-
-                                // ustawienia ui panela gracza, który się wylogował
-                                int deserterId = packet.getPlayerId();
-
-                                status = packet.getBool() ? status | Consts.STARTED : status & ~Consts.STARTED;
-                                if ((status & Consts.STARTED) == Consts.STARTED) {
-
-                                    addLog("Gracz " + panelGracza[deserterId].getNick() + " uciekł!");
-
-                                    btnLogon.setEnabled(true);
                                     btnReady.setEnabled(true);
-                                    for (PanelPlayer pp : panelGracza) {
-                                        pp.setReadiness(false);
-                                        pp.setProgressValue(0);
-                                        pp.setPlace("");
-                                        pp.setSkillAvailability(0, false);
-                                        pp.setSkillAvailability(1, false);
-                                        pp.setSkillAvailability(2, false);
-                                    }
-                                    input.setEnabled(false);
-                                    input.setText("");
-                                    text.setText("");
                                 }
-                                panelGracza[deserterId].join("");
-                                panelGracza[deserterId].setProgressValue(0);
-                                panelGracza[playerId].resetActionPoints();
+                            } else {
+                                sendObjectToServer(new Packet(Command.LOGOUT));
+                                addToEventLog("Wylogowano.");
+                            }
 
-                            } else if (command == Command.UPDATE_PLAYERS_LIST) {
+                        } else if (command == Command.LOGOUT) {
 
-                                // wczytanie nazw graczy do paneli
-                                ExtendedPacket extendedPacket = (ExtendedPacket) packet;
-                                for (Player player : extendedPacket.getPlayers())
-                                    panelGracza[player.getPlayerId()].join(player.getNick());
+                            // ustawienia ui klienta po wylogowaniu
+                            status = service.logoutClient(status);
+                            addToEventLog(service.showMessageIfExists());
+                            updateUI();
 
-                            } else if (command == Command.CHANGE_READY) {
+                        } else if (command == Command.LOGOUT_PLAYER_NOTIFY) {
 
-                                // przełącznik koloru gotowości danego użytkownika
-                                panelGracza[packet.getPlayerId()].setReadiness(packet.getBool());
+                            // ustawienia ui panela gracza, który się wylogował
+                            int deserterId = packet.getPlayerId();
 
-                            } else if (command == Command.START_GAME) {
+                            status = packet.getBool() ? status | Consts.STARTED : status & ~Consts.STARTED;
+                            if ((status & Consts.STARTED) == Consts.STARTED) {
 
-                                // rozpoczęcie gry
-                                ExtendedPacket extendedPacket = (ExtendedPacket) packet;
-                                zadanie = extendedPacket.getZadanie();
+                                addToEventLog("Gracz " + panelGracza[deserterId].getNick() + " uciekł!");
 
-                                btnReady.setEnabled(false);
-                                btnLogon.setEnabled(false);
-
-                                typedChars = 0;
-
-                                text.setText(zadanie.getText());
-                                input.setEnabled(true);
-                                input.requestFocus();
-
-                            } else if (command == Command.PROGRESS) {
-
-                                // zmiana wartości progresu danego użytkownika
-                                panelGracza[packet.getPlayerId()].setProgressValue(packet.getInt());
-
-                            } else if (command == Command.WIN) {
-
-                                int senderId = packet.getPlayerId();
-                                // poinformowanie o ukończeniu zadania przez danego użytkownika
-                                panelGracza[senderId].setPlace(packet.getInt());
-                                addLog("Gracz " + panelGracza[senderId].getNick() + " juz skończył!");
-
-                            } else if (command == Command.SEND_TEXT_RESPONSE) {
-
-                                // odpowiedź serwera na prośbę o pozwolenie na przesłanie tekstu do serwera
-                                if (packet.getBool())
-                                    displayRequestWithTextPopup();
-                                else
-                                    addLog("Serwer odmówił żądanie o pozwolenie na przesłanie pliku.");
-
-                            } else if (command == Command.RESET) {
-
-                                // ogłoszenie wyników użytkowników
-                                String content = "Tablica wyników:";
-                                int counter = 1;
-                                ExtendedPacket extendedPacket = (ExtendedPacket) packet;
-
-                                for (Player player : extendedPacket.getPlayers())
-                                    content += "\n" + (counter++) + ". " + player.getNick();
-
-                                addLog(content);
-
-                                typedChars = 0;
-
-                                // zresetowanie ui paneli graczy
                                 btnLogon.setEnabled(true);
                                 btnReady.setEnabled(true);
                                 for (PanelPlayer pp : panelGracza) {
@@ -455,72 +394,150 @@ public class ClientGUI extends JFrame {
                                     pp.setSkillAvailability(1, false);
                                     pp.setSkillAvailability(2, false);
                                 }
-                                panelGracza[playerId].resetActionPoints();
-
-                            } else if (command == Command.DEBUFF_CAST) {
-
-                                // aktywacja działania urozmaicenia rozgrywki
-                                int targetId = packet.getInt();
-                                Debuff debuff = packet.getDebuff();
-                                int durationTime;
-                                if (debuff == Debuff.INVISIBILITY) {
-                                    panelGracza[targetId].setSkillActivity(0, true);
-                                    durationTime = Variety.HIDE_INPUT_CONTENT.getDurationTime();
-                                } else if (debuff == Debuff.REVERSE) {
-                                    panelGracza[targetId].setSkillActivity(1, true);
-                                    durationTime = Variety.REVERSE_WORDS_IN_TEXT.getDurationTime();
-                                } else if (debuff == Debuff.SHUFFLE) {
-                                    panelGracza[targetId].setSkillActivity(2, true);
-                                    durationTime = Variety.SHUFFLE_CHARS_IN_WORDS.getDurationTime();
-                                } else
-                                    durationTime = 5;
-
-                                if (playerId == targetId) {
-                                    castDebuff(debuff);
-                                    new java.util.Timer().schedule(new java.util.TimerTask() {
-                                        public void run() {
-
-                                            try {
-                                                client.sendToServer.writeObject(
-                                                        new Packet(Command.DEBUFF_CLEAR, debuff, targetId));
-                                                client.sendToServer.flush();
-                                            } catch (IOException ex) {
-                                                addLog(ex.toString());
-                                            }
-                                            clearDebuff(debuff);
-                                        }
-                                    }, durationTime * 1000);
-                                }
-
-                            } else if (command == Command.DEBUFF_CLEAR) {
-
-                                // przywrócenie skutków urozmaicenia rozgrywki
-                                int targetId = packet.getInt();
-                                Debuff debuff = packet.getDebuff();
-                                if (debuff == Debuff.INVISIBILITY)
-                                    panelGracza[targetId].setSkillActivity(0, false);
-                                else if (debuff == Debuff.REVERSE)
-                                    panelGracza[targetId].setSkillActivity(1, false);
-                                else if (debuff == Debuff.SHUFFLE)
-                                    panelGracza[targetId].setSkillActivity(2, false);
+                                input.setEnabled(false);
+                                input.setText("");
+                                text.setText("");
                             }
-                            sendToServer.flush();
+                            panelGracza[deserterId].join("");
+                            panelGracza[deserterId].setProgressValue(0);
+                            panelGracza[playerId].resetActionPoints();
+
+                        } else if (command == Command.UPDATE_PLAYERS_LIST) {
+
+                            // wczytanie nazw graczy do paneli
+                            ExtendedPacket extendedPacket = (ExtendedPacket) packet;
+                            for (Player player : extendedPacket.getPlayers())
+                                panelGracza[player.getPlayerId()].join(player.getNick());
+
+                        } else if (command == Command.CHANGE_READY) {
+
+                            // przełącznik koloru gotowości danego użytkownika
+                            panelGracza[packet.getPlayerId()].setReadiness(packet.getBool());
+
+                        } else if (command == Command.START_GAME) {
+
+                            // rozpoczęcie gry
+                            ExtendedPacket extendedPacket = (ExtendedPacket) packet;
+                            zadanie = extendedPacket.getZadanie();
+
+                            btnReady.setEnabled(false);
+                            btnLogon.setEnabled(false);
+
+                            typedChars = 0;
+
+                            text.setText(zadanie.getText());
+                            input.setEnabled(true);
+                            input.requestFocus();
+
+                        } else if (command == Command.PROGRESS) {
+
+                            // zmiana wartości progresu danego użytkownika
+                            panelGracza[packet.getPlayerId()].setProgressValue(packet.getInt());
+
+                        } else if (command == Command.WIN) {
+
+                            int senderId = packet.getPlayerId();
+                            // poinformowanie o ukończeniu zadania przez danego użytkownika
+                            panelGracza[senderId].setPlace(packet.getInt());
+                            addToEventLog("Gracz " + panelGracza[senderId].getNick() + " juz skończył!");
+
+                        } else if (command == Command.SEND_TEXT_RESPONSE) {
+
+                            // odpowiedź serwera na prośbę o pozwolenie na przesłanie tekstu do serwera
+                            if (packet.getBool())
+                                displayRequestWithTextPopup();
+                            else
+                                addToEventLog("Serwer odmówił żądanie o pozwolenie na przesłanie pliku.");
+
+                        } else if (command == Command.RESET) {
+
+                            // ogłoszenie wyników użytkowników
+                            String content = "Tablica wyników:";
+                            int counter = 1;
+                            ExtendedPacket extendedPacket = (ExtendedPacket) packet;
+
+                            for (Player player : extendedPacket.getPlayers())
+                                content += "\n" + (counter++) + ". " + player.getNick();
+
+                            addToEventLog(content);
+
+                            typedChars = 0;
+
+                            // zresetowanie ui paneli graczy
+                            btnLogon.setEnabled(true);
+                            btnReady.setEnabled(true);
+                            for (PanelPlayer pp : panelGracza) {
+                                pp.setReadiness(false);
+                                pp.setProgressValue(0);
+                                pp.setPlace("");
+                                pp.setSkillAvailability(0, false);
+                                pp.setSkillAvailability(1, false);
+                                pp.setSkillAvailability(2, false);
+                            }
+                            panelGracza[playerId].resetActionPoints();
+
+                        } else if (command == Command.DEBUFF_CAST) {
+
+                            // aktywacja działania urozmaicenia rozgrywki
+                            int targetId = packet.getInt();
+                            Debuff debuff = packet.getDebuff();
+                            int durationTime;
+                            if (debuff == Debuff.INVISIBILITY) {
+                                panelGracza[targetId].setSkillActivity(0, true);
+                                durationTime = Variety.HIDE_INPUT_CONTENT.getDurationTime();
+                            } else if (debuff == Debuff.REVERSE) {
+                                panelGracza[targetId].setSkillActivity(1, true);
+                                durationTime = Variety.REVERSE_WORDS_IN_TEXT.getDurationTime();
+                            } else if (debuff == Debuff.SHUFFLE) {
+                                panelGracza[targetId].setSkillActivity(2, true);
+                                durationTime = Variety.SHUFFLE_CHARS_IN_WORDS.getDurationTime();
+                            } else
+                                durationTime = 5;
+
+                            if (playerId == targetId) {
+                                castDebuff(debuff);
+                                new java.util.Timer().schedule(new java.util.TimerTask() {
+                                    public void run() {
+
+                                        try {
+                                            client.oos.writeObject(new Packet(Command.DEBUFF_CLEAR, debuff, targetId));
+                                            client.oos.flush();
+                                        } catch (IOException ex) {
+                                            addToEventLog(ex.toString());
+                                        }
+                                        clearDebuff(debuff);
+                                    }
+                                }, durationTime * 1000);
+                            }
+
+                        } else if (command == Command.DEBUFF_CLEAR) {
+
+                            // przywrócenie skutków urozmaicenia rozgrywki
+                            int targetId = packet.getInt();
+                            Debuff debuff = packet.getDebuff();
+                            if (debuff == Debuff.INVISIBILITY)
+                                panelGracza[targetId].setSkillActivity(0, false);
+                            else if (debuff == Debuff.REVERSE)
+                                panelGracza[targetId].setSkillActivity(1, false);
+                            else if (debuff == Debuff.SHUFFLE)
+                                panelGracza[targetId].setSkillActivity(2, false);
                         }
-                    } catch (ClassNotFoundException ex) {
+                        oos.flush();
                     }
+
                 }
             } catch (UnknownHostException e) {
-                addLog("Błąd połączenia!");
+                addToEventLog("Błąd połączenia!");
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(null, "Prawdopodobnie serwer nie jest włączony.", "Informacja",
                         JOptionPane.ERROR_MESSAGE);
                 System.exit(1);
             } catch (NullPointerException e) {
-                addLog(e.toString());
+                addToEventLog(e.toString());
             } finally {
                 try {
-                    receiveFromServer.close();
-                    sendToServer.close();
+                    ois.close();
+                    oos.close();
                     socket.close();
                 } catch (IOException e) {
                 } catch (NullPointerException e) {
@@ -632,18 +649,18 @@ public class ClientGUI extends JFrame {
     private class PanelPlayer extends JPanel {
 
         JProgressBar progress;
-        JPanel color, panelWithNick;
+        JPanel panelWithNick;
         JLabel labelWithNick, labelWithPlace, labelWithAP;
         JButton[] btns = new JButton[3];
         int panelId;
         int actionPoints;
 
-        public PanelPlayer(int idColor) {
+        public PanelPlayer(int index) {
             super(new BorderLayout());
-            this.panelId = idColor;
+            this.panelId = index;
 
-            color = new JPanel();
-            color.setBackground(this.getColorById(idColor));
+            JPanel color = new JPanel();
+            color.setBackground(Consts.COLORS_OF_PLAYERS[index]);
             color.setPreferredSize(new Dimension(40, 40));
 
             labelWithPlace = new JLabel("", SwingConstants.CENTER);
@@ -697,25 +714,6 @@ public class ClientGUI extends JFrame {
             // -- rozmieszczenie paneli
             add(left, BorderLayout.LINE_START);
             add(progress, BorderLayout.CENTER);
-        }
-
-        private Color getColorById(int id) {
-            switch (id) {
-            case 0:
-                return Color.decode("#6077E0"); // niebieski
-            case 1:
-                return Color.decode("#ED094A"); // czerwony
-            case 2:
-                return Color.decode("#4DBD02"); // zielony
-            case 3:
-                return Color.decode("#E231E2"); // fioletowy
-            case 4:
-                return Color.decode("#37C6C7"); // błękitny
-            case 5:
-                return Color.decode("#FF8B17"); // pomaranczowy
-            default:
-                return Color.GRAY;
-            }
         }
 
         public void setProgressValue(int value) {
@@ -809,29 +807,28 @@ public class ClientGUI extends JFrame {
                 if (e.getSource() == btns[0]) {
                     if (updateSkillsAvailability(Debuff.INVISIBILITY)) {
                         try {
-                            client.sendToServer
-                                    .writeObject(new Packet(Command.DEBUFF_CAST, Debuff.INVISIBILITY, panelId));
-                            client.sendToServer.flush();
+                            client.oos.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.INVISIBILITY, panelId));
+                            client.oos.flush();
                         } catch (IOException ex) {
-                            addLog(ex.toString());
+                            addToEventLog(ex.toString());
                         }
                     }
                 } else if (e.getSource() == btns[1]) {
                     if (updateSkillsAvailability(Debuff.REVERSE)) {
                         try {
-                            client.sendToServer.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
-                            client.sendToServer.flush();
+                            client.oos.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
+                            client.oos.flush();
                         } catch (IOException ex) {
-                            addLog(ex.toString());
+                            addToEventLog(ex.toString());
                         }
                     }
                 } else if (e.getSource() == btns[2]) {
                     if (updateSkillsAvailability(Debuff.SHUFFLE)) {
                         try {
-                            client.sendToServer.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
-                            client.sendToServer.flush();
+                            client.oos.writeObject(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
+                            client.oos.flush();
                         } catch (IOException ex) {
-                            addLog(ex.toString());
+                            addToEventLog(ex.toString());
                         }
                     }
                 }
@@ -869,12 +866,8 @@ public class ClientGUI extends JFrame {
         return false;
     }
 
-    private void addLog(String content) {
+    private void addToEventLog(String content) {
         logs.append(content + "\n");
         logs.setCaretPosition(logs.getDocument().getLength());
-    }
-
-    public static void main(String[] args) {
-        new ClientGUI();
     }
 }
