@@ -2,8 +2,27 @@ package Models;
 
 public class CommunicationService {
 
-    public class Server {
+    static public class Server {
 
+        private JTextArea logs;
+        private Packet packet = null;
+
+        public Server(JTextArea logs) {
+            this.logs = logs;
+        }
+
+        public void setPacket(Packet packet) {
+            this.packet = packet;
+        }
+
+        public boolean tryLogonToServer(ArrayList<Connection> clients) {
+            
+        }
+
+        private void addMessage(String content) {
+            logs.append(content + "\n");
+            logs.setCaretPosition(logs.getDocument().getLength());
+        }
     }
 
     static public class Client {

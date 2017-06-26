@@ -3,7 +3,9 @@ package Models;
 import java.awt.Color;
 
 public class Consts {
-    public static final String VERSION = "v0.9.1";
+    public static final String VERSION = "v0.9.2";
+    public static final String DEFAULT_PORT = "2345";
+    public static final String DEFAULT_HOSTNAME = "localhost:" + Consts.DEFAULT_PORT;
     public static final int MAX_PLAYERS = 4;
     public static final Color[] COLORS_OF_PLAYERS = {
         Color.decode("#6077e0"), // niebieski
