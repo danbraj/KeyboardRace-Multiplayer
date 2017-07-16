@@ -1,5 +1,3 @@
-package Models;
-
 import java.awt.Color;
 
 public enum Variety {

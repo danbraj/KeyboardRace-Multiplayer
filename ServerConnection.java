@@ -1,15 +1,14 @@
-import Models.*;
-import java.io.IOException;
+import java.net.Socket;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.Socket;
-import java.util.Scanner;
+import java.io.IOException;
 import java.io.File;
+import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Random;
 import javax.swing.JTextArea;
 
-public class Connection extends Thread {
+public class ServerConnection extends Thread {
 
     private Socket socket;
     private ObjectInputStream ois;
@@ -18,7 +17,7 @@ public class Connection extends Thread {
     private boolean isConnected = true;
     protected ServerGUI gui;
 
-    public Connection(Socket socket, ServerGUI gui) {
+    public ServerConnection(Socket socket, ServerGUI gui) {
         this.socket = socket;
         this.gui = gui;
     }
@@ -79,19 +78,18 @@ public class Connection extends Thread {
 
                         if (gui.app.checkStatusIfNotExistsFlag(Consts.STARTED)) {
 
-                            boolean isFreeSlots = false;
-
                             gui.addLog("Użytkownik " + connectionIp + " próbuje się połączyć.");
 
                             // stwórz gracza i dodaj do listy, jeżeli jest wolne miejsce
+                            boolean areFreeSlots = false;
                             synchronized (gui.app.clients) {
                                 for (int index = 0, k = gui.app.clients.size(); index < k; index++) {
                                     if (gui.app.clients.get(index) == null) {
                                         gui.app.clients.set(index, this);
                                         player = new Player(index);
-                                        isFreeSlots = true;
+                                        areFreeSlots = true;
 
-                                        oos.writeObject(new Packet(Command.LOGIN_RESPONSE, player.getPlayerId()));
+                                        sendObjectToClient(new Packet(Command.LOGIN_RESPONSE, player.getPlayerId()));
                                         gui.addLog("Użytkownik " + connectionIp + " został połączony (SLOT "
                                                 + player.getPlayerId() + ").");
                                         break;
@@ -99,13 +97,13 @@ public class Connection extends Thread {
                                 }
                             }
 
-                            if (!isFreeSlots) {
-                                oos.writeObject(new Packet(Command.LOGOUT, "Niestety nie ma wolnych miejsc :<"));
+                            if (!areFreeSlots) {
+                                sendObjectToClient(new Packet(Command.LOGOUT, "Niestety nie ma wolnych miejsc :<"));
                                 gui.addLog("Użytkownik " + connectionIp
                                         + " został rozłączony, z powodu braku wolnego miejsca.");
                             }
                         } else {
-                            oos.writeObject(new Packet(Command.LOGOUT, "Niestety rozgrywka już się rozpoczęła :<"));
+                            sendObjectToClient(new Packet(Command.LOGOUT, "Niestety rozgrywka już się rozpoczęła :<"));
                             gui.addLog("Użytkownik " + connectionIp
                                     + " został rozłączony, ponieważ rozgrywka już się rozpoczęła.");
                         }
@@ -113,13 +111,14 @@ public class Connection extends Thread {
                     } else if (command == Command.LOGOUT) {
 
                         // poinformowanie pozostałych użytkowników o wylogowującym się użytkowników
-                        for (Connection client : gui.app.clients) {
+                        for (ServerConnection client : gui.app.clients) {
                             if (client != null && client != this)
-                                client.oos.writeObject(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getPlayerId(),
+                                client.sendObjectToClient(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getPlayerId(),
                                         gui.app.checkStatusIfExistsFlag(Consts.STARTED)));
                         }
+
                         // usunięcie użytkownika z listy użytkowników
-                        oos.writeObject(new Packet(Command.LOGOUT, player.getPlayerId()));//
+                        sendObjectToClient(new Packet(Command.LOGOUT, player.getPlayerId()));//
                         gui.addLog("Użytkownik " + socket.getInetAddress().getHostAddress()
                                 + " został rozłączony (SLOT " + player.getPlayerId() + ").");
 
@@ -138,20 +137,16 @@ public class Connection extends Thread {
 
                         synchronized (gui.app.clients) {
                             ArrayList<Player> players = new ArrayList<Player>();
-                            for (Connection client : gui.app.clients) {
-                                if (client != null) {
+                            for (ServerConnection client : gui.app.clients)
+                                if (client != null)
                                     players.add(client.player);
-                                }
-                            }
 
                             // aktualizacja użytkownków dla nowego użytkownika 
                             // poinformowanie innych użytkowników o nowym użytkowniku
-                            for (Connection client : gui.app.clients) {
-                                if (client != null) {
-                                    client.oos.reset(); // poprawka błędu: niepoprawne wyświetlanie nazwy użytkownka pozostałym użytkownikom, gdy podczas wyboru nazwy dołącza kolejny klient i wyprzedza poprzedniego szybciej wybierając nazwę
-                                    client.oos.writeObject(new ExtendedPacket(Command.UPDATE_PLAYERS_LIST, players));
-                                }
-                            }
+                            ExtendedPacket extendedPacket = new ExtendedPacket(Command.UPDATE_PLAYERS_LIST, players);
+                            for (ServerConnection client : gui.app.clients)
+                                if (client != null)
+                                    client.sendObjectToClient(extendedPacket, true);
                         }
 
                     } else if (command == Command.CHANGE_READY) {
@@ -159,12 +154,13 @@ public class Connection extends Thread {
                         // zmiana gotowości użytkownika i sprawdzenie czy wszyscy pozostali są gotowi
                         boolean isReady = player.toggleAndGetReady();
                         boolean isReadyAll = true;
-                        for (Connection client : gui.app.clients) {
+                        Packet newPacket = new Packet(Command.CHANGE_READY, player.getPlayerId(), isReady);
+                        for (ServerConnection client : gui.app.clients) {
                             if (client != null) {
                                 if (isReadyAll)
                                     if (!client.player.isReady)
                                         isReadyAll = false;
-                                client.oos.writeObject(new Packet(Command.CHANGE_READY, player.getPlayerId(), isReady));
+                                client.sendObjectToClient(newPacket);
                             }
                         }
 
@@ -177,15 +173,16 @@ public class Connection extends Thread {
                             }
 
                             // wylosowanie zadania oraz jego przydzielenie do użytkowników i tym samym start rozgrywki 
-                            Zadanie zadanie = randomizeTask();
+                            Zadanie zadanie = gui.randomizeTask();
                             if (zadanie != null) {
                                 synchronized (gui.app.clients) {
                                     gui.app.playersCount = 0;
-                                    for (Connection client : gui.app.clients) {
+                                    Packet extendedPacket = new ExtendedPacket(Command.START_GAME, zadanie);
+                                    for (ServerConnection client : gui.app.clients) {
                                         if (client != null) {
                                             gui.app.playersCount++;
-                                            client.oos.writeObject(new ExtendedPacket(Command.START_GAME, zadanie));
-                                            client.player.setUnready();
+                                            client.sendObjectToClient(extendedPacket);
+                                            client.getPlayer().setUnready();
                                         }
                                     }
                                 }
@@ -199,9 +196,10 @@ public class Connection extends Thread {
                         // poinformowanie użytkowników o zmieniającym się progresie
                         int senderId = packet.getPlayerId();
                         int progress = packet.getInt();
-                        for (Connection client : gui.app.clients) {
+                        Packet newPacket = new Packet(Command.PROGRESS, senderId, progress);
+                        for (ServerConnection client : gui.app.clients) {
                             if (client != null)
-                                client.oos.writeObject(new Packet(Command.PROGRESS, senderId, progress));
+                                client.sendObjectToClient(newPacket);
                         }
 
                     } else if (command == Command.WIN) {
@@ -210,9 +208,10 @@ public class Connection extends Thread {
 
                         synchronized (gui.app.clients) {
                             gui.app.place++;
-                            for (Connection client : gui.app.clients) {
+                            Packet newPacket = new Packet(Command.WIN, winnerId, gui.app.place);
+                            for (ServerConnection client : gui.app.clients) {
                                 if (client != null)
-                                    client.oos.writeObject(new Packet(Command.WIN, winnerId, gui.app.place));
+                                    client.sendObjectToClient(newPacket);
                             }
                         }
 
@@ -226,11 +225,10 @@ public class Connection extends Thread {
                             gui.app.place = 0;
                             gui.app.status &= ~Consts.STARTED;
                             synchronized (gui.app.clients) {
-                                for (Connection client : gui.app.clients) {
-                                    if (client != null) {
-                                        client.oos.reset();
-                                        client.oos.writeObject(new ExtendedPacket(Command.RESET, gui.app.leaderboard));
-                                    }
+                                ExtendedPacket ep = new ExtendedPacket(Command.RESET, gui.app.leaderboard);
+                                for (ServerConnection client : gui.app.clients) {
+                                    if (client != null)
+                                        client.sendObjectToClient(ep, true);
                                 }
                             }
                             gui.app.leaderboard.clear();
@@ -244,12 +242,12 @@ public class Connection extends Thread {
                                 // jeżeli nie został osiągnięty limit tekstów w poczekalni to..
                                 if (gui.app.tasksCount.get() > 0) {
                                     gui.app.tasksCount.decrementAndGet();
-                                    oos.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, true));
+                                    sendObjectToClient(new Packet(Command.SEND_TEXT_RESPONSE, true));
                                 } else
-                                    oos.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, false));
+                                    sendObjectToClient(new Packet(Command.SEND_TEXT_RESPONSE, false));
                             }
                         } else
-                            oos.writeObject(new Packet(Command.SEND_TEXT_RESPONSE, false));
+                            sendObjectToClient(new Packet(Command.SEND_TEXT_RESPONSE, false));
 
                     } else if (command == Command.SEND_TEXT) {
 
@@ -268,45 +266,16 @@ public class Connection extends Thread {
                     } else if (command == Command.DEBUFF_CAST || command == Command.DEBUFF_CLEAR) {
 
                         // przekazanie otrzymanego pakietu do wszystkich klientów
-                        for (Connection client : gui.app.clients)
+                        for (ServerConnection client : gui.app.clients)
                             if (client != null)
-                                client.oos.writeObject(packet);
+                                client.sendObjectToClient(packet);
                     }
-                    oos.flush();
                 }
             }
         } catch (Exception e) {
             System.out.println(e);
         } finally {
-            try {
-                ois.close();
-                oos.close();
-                socket.close();
-            } catch (IOException e) {
-            }
+            closeConnection();
         }
-    }
-
-    // funkcja losująca zadanie (tekst do przepisania) ze zbioru plików w folderze Texts
-    private Zadanie randomizeTask() {
-        ArrayList<File> files = FilesService.getFiles();
-        if (!files.isEmpty()) {
-            int filesCount = files.size();
-            int randomIndex = new Random().nextInt(filesCount);
-            File file = files.get(randomIndex);
-
-            gui.addLog("Serwer wylosował: [" + randomIndex + "] " + file.getName() + "");
-
-            try {
-                String taskContent = new Scanner(file, "UTF-8").useDelimiter("\\A").next();
-                return new Zadanie(taskContent);
-            } catch (IOException e) {
-                gui.addLog("Błąd odczytu pliku.");
-                System.exit(2);
-            }
-        } else
-            gui.addLog("Nie ma plików z tekstami");
-
-        return null;
     }
 }

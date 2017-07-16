@@ -1,12 +1,11 @@
-import Models.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ServerApp {
+class ServerApp {
 
     protected int status = 0; // 1 - connected, 2 - running, 4 - started
-    protected ArrayList<Connection> clients = new ArrayList<Connection>(Consts.MAX_PLAYERS);
+    protected ArrayList<ServerConnection> clients = new ArrayList<ServerConnection>(Consts.MAX_PLAYERS);
     protected ArrayList<Player> leaderboard = new ArrayList<>(Consts.MAX_PLAYERS);
     protected int place = 0;
     protected int playersCount = 0;

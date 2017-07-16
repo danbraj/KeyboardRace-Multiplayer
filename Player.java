@@ -1,5 +1,3 @@
-package Models;
-
 import java.io.Serializable;
 
 public class Player implements Serializable {

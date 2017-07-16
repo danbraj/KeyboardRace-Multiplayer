@@ -1,4 +1,3 @@
-import Models.*;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -15,7 +14,7 @@ public class Server extends Thread {
 
     public void terminate() {
         try {
-            for (Connection client : gui.app.clients) {
+            for (ServerConnection client : gui.app.clients) {
                 if (client != null) {
                     client.sendObjectToClient(
                             new Packet(Command.LOGOUT, client.getPlayer().getPlayerId(), "Serwer został wyłączony."));
@@ -36,7 +35,7 @@ public class Server extends Thread {
 
             while (gui.app.checkStatusIfExistsFlag(Consts.RUNNING)) {
                 Socket socket = server.accept();
-                new Connection(socket, gui).start();
+                new ServerConnection(socket, gui).start();
             }
         } catch (SocketException e) {
         } catch (Exception e) {

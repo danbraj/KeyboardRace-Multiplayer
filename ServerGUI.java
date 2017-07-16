@@ -1,4 +1,3 @@
-import Models.*;
 import java.io.*;
 import java.net.*;
 import javax.swing.*;
@@ -74,11 +73,14 @@ public class ServerGUI extends JFrame {
 
                     server = new Server(ServerGUI.this);
                     server.start();
+
                     btnRunServer.setText("Zatrzymaj");
                     port.setEnabled(false);
                 } else {
+
                     server.terminate();
                     app.status &= ~Consts.STARTED;
+
                     btnRunServer.setText("Uruchom");
                     port.setEnabled(true);
                 }
@@ -131,5 +133,28 @@ public class ServerGUI extends JFrame {
     protected void addLog(String content) {
         logs.append(content + "\n");
         logs.setCaretPosition(logs.getDocument().getLength());
+    }
+
+    // funkcja losująca zadanie (tekst do przepisania) ze zbioru plików w folderze Texts
+    protected Zadanie randomizeTask() {
+        ArrayList<File> files = FilesService.getFiles();
+        if (!files.isEmpty()) {
+            int filesCount = files.size();
+            int randomIndex = new Random().nextInt(filesCount);
+            File file = files.get(randomIndex);
+
+            addLog("Serwer wylosował: [" + randomIndex + "] " + file.getName() + "");
+
+            try {
+                String taskContent = new Scanner(file, "UTF-8").useDelimiter("\\A").next();
+                return new Zadanie(taskContent);
+            } catch (IOException e) {
+                System.out.println("Błąd odczytu pliku.");
+                System.exit(2);
+            }
+        } else {
+            addLog("Nie ma plików z tekstami");
+        }
+        return null;
     }
 }

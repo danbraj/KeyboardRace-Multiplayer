@@ -1,17 +1,27 @@
-import Models.*;
-
 class ClientApp {
 
-    private String hostname = "localhost:2345";
-    private int status = 0; // 0 - not connected, 1 - connected
-    private int playerId;
-    private Zadanie zadanie;
-    private int typedChars = 0;
+    protected int status = 0; // 0 - not connected, 1 - connected
+    protected Client client;
+    protected int playerId;
+    protected Zadanie zadanie; // <- typedChars?
+    protected int typedChars = 0;
+
+    private ClientApp() {
+        new ClientGUI(this);
+    }
 
     public static void main(String[] args) {
         if (Consts.MAX_PLAYERS <= Consts.COLORS_OF_PLAYERS.length)
-            new ClientGUI();
+            new ClientApp();
         else
             System.exit(2);
+    }
+
+    protected boolean checkStatusIfExistsFlag(int flag) {
+        return (this.status & flag) == flag;
+    }
+
+    protected boolean checkStatusIfNotExistsFlag(int flag) {
+        return (this.status & flag) != flag;
     }
 }
