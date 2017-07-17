@@ -64,7 +64,7 @@ public class Client extends Thread { //todo rename to ClientConnection
             this.sendObjectToServer(new Packet(Command.LOGIN_REQUEST));
 
             Packet packet = null;
-            while (gui.app.checkStatusIfNotExistsFlag(Status.CONNECTED)) {
+            while (gui.app.checkStatusIfExistsFlag(Status.CONNECTED)) {
 
                 packet = (Packet) this.receiveObjectFromServer();
                 if (packet != null) {
