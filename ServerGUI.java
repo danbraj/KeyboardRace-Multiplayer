@@ -51,16 +51,30 @@ public class ServerGUI extends JFrame {
         for (int i = 0; i < App.MAX_PLAYERS; i++)
             app.clients.add(null);
 
-        Obsluga obsluga = new Obsluga();
+        Server server = new Server(this);
+        Obsluga obsluga = new Obsluga(server);
         btnRunServer.addActionListener(obsluga);
         btnTasks.addActionListener(obsluga);
 
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                if (app.checkStatusIfExistsFlag(Status.RUNNING)) {
+                    server.terminate();
+                }
+                setVisible(false);
+                System.exit(0);
+            }
+        });
         setVisible(true);
     }
 
     private class Obsluga implements ActionListener {
 
         private Server server;
+
+        public Obsluga(Server server) {
+            this.server = server;
+        }
 
         public void actionPerformed(ActionEvent e) {
 
@@ -71,7 +85,6 @@ public class ServerGUI extends JFrame {
                     for (int i = 0; i < App.MAX_PLAYERS; i++)
                         app.clients.set(i, null);
 
-                    server = new Server(ServerGUI.this);
                     (new Thread(server)).start();
                     //server.start();
 
