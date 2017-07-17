@@ -3,7 +3,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 
-public class Server extends Thread {
+public class Server implements Runnable {
 
     private ServerGUI gui;
     private ServerSocket server;
@@ -35,7 +35,8 @@ public class Server extends Thread {
 
             while (gui.app.checkStatusIfExistsFlag(Status.RUNNING)) {
                 Socket socket = server.accept();
-                new ServerConnection(socket, gui).start();
+                (new Thread(new ServerConnection(socket, gui))).start();
+                //new ServerConnection(socket, gui).start();
             }
         } catch (SocketException e) {
         } catch (Exception e) {

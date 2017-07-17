@@ -72,7 +72,8 @@ public class ServerGUI extends JFrame {
                         app.clients.set(i, null);
 
                     server = new Server(ServerGUI.this);
-                    server.start();
+                    (new Thread(server)).start();
+                    //server.start();
 
                     btnRunServer.setText("Zatrzymaj");
                     port.setEnabled(false);

@@ -7,14 +7,14 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
 
-public class Client extends Thread { //todo rename to ClientConnection
+public class ClientConnection implements Runnable {
 
     private Socket socket;
     private ObjectInputStream ois;
     private ObjectOutputStream oos;
     protected ClientGUI gui;
 
-    public Client(Socket socket, ClientGUI gui) {
+    public ClientConnection(Socket socket, ClientGUI gui) {
         this.socket = socket;
         this.gui = gui;
     }

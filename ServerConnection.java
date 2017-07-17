@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import javax.swing.JTextArea;
 
-public class ServerConnection extends Thread {
+public class ServerConnection implements Runnable {
 
     private Socket socket;
     private ObjectInputStream ois;

@@ -214,8 +214,9 @@ public class ClientGUI extends JFrame {
                 } else {
                     String[] hostParameters = host.getText().split(":", 2);
                     try {
-                        app.client = new Client(new Socket(hostParameters[0], new Integer(hostParameters[1])), ClientGUI.this);
-                        app.client.start();
+                        app.client = new ClientConnection(new Socket(hostParameters[0], new Integer(hostParameters[1])), ClientGUI.this);
+                        (new Thread(app.client)).start();
+                        //app.client.start();
                     } catch (UnknownHostException ex) {
                     } catch (IOException ex) {
                         addToEventLog("Nie można się połączyć z serwerem [" + hostParameters[0] + "]");
