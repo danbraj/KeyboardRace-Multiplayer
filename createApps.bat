@@ -12,15 +12,15 @@ if errorlevel 1 goto clientApp
 :clientApp
 javac -encoding utf8 ClientApp.java
 echo Main-Class: ClientApp > manifest_for_client.txt
-jar cvfm ClientApp.jar manifest_for_client.txt *.class Models/*.class
-del manifest_for_client.txt *.class Models\*.class
+jar cvfm ClientApp.jar manifest_for_client.txt *.class
+del manifest_for_client.txt *.class
 goto end
 
 :serverApp
 javac -encoding utf8 ServerApp.java
 echo Main-Class: ServerApp > manifest_for_server.txt
-jar cvfm ServerApp.jar manifest_for_server.txt *.class Models/*.class
-del manifest_for_server.txt *.class Models\*.class
+jar cvfm ServerApp.jar manifest_for_server.txt *.class
+del manifest_for_server.txt *.class
 ::goto end
 
 :end
