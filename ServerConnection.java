@@ -66,7 +66,7 @@ public class ServerConnection extends Thread {
             oos.flush();
 
             Packet packet = null;
-            while (gui.app.checkStatusIfExistsFlag(Consts.RUNNING) && isConnected) {
+            while (gui.app.checkStatusIfExistsFlag(Status.RUNNING) && isConnected) {
 
                 packet = (Packet) this.receiveObjectFromClient();
                 if (packet != null) {
@@ -76,7 +76,7 @@ public class ServerConnection extends Thread {
 
                         String connectionIp = socket.getInetAddress().getHostAddress();
 
-                        if (gui.app.checkStatusIfNotExistsFlag(Consts.STARTED)) {
+                        if (gui.app.checkStatusIfNotExistsFlag(Status.STARTED)) {
 
                             gui.addLog("Użytkownik " + connectionIp + " próbuje się połączyć.");
 
@@ -114,7 +114,7 @@ public class ServerConnection extends Thread {
                         for (ServerConnection client : gui.app.clients) {
                             if (client != null && client != this)
                                 client.sendObjectToClient(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getPlayerId(),
-                                        gui.app.checkStatusIfExistsFlag(Consts.STARTED)));
+                                        gui.app.checkStatusIfExistsFlag(Status.STARTED)));
                         }
 
                         // usunięcie użytkownika z listy użytkowników
@@ -128,8 +128,8 @@ public class ServerConnection extends Thread {
                         }
 
                         // zatrzymanie rozgrywki, jeżeli ktoś wyszedł w trakcie gry
-                        if (gui.app.checkStatusIfExistsFlag(Consts.STARTED))
-                            gui.app.status &= ~Consts.STARTED;
+                        if (gui.app.checkStatusIfExistsFlag(Status.STARTED))
+                            gui.app.status &= ~Status.STARTED;
 
                     } else if (command == Command.NICK_SET) {
 
@@ -166,7 +166,7 @@ public class ServerConnection extends Thread {
 
                         // jeżeli wszyscy użytkownicy byli gotowi to startuje gra
                         if (isReadyAll) {
-                            gui.app.status |= Consts.STARTED;
+                            gui.app.status |= Status.STARTED;
 
                             synchronized (gui.app.leaderboard) {
                                 gui.app.leaderboard.clear();
@@ -223,7 +223,7 @@ public class ServerConnection extends Thread {
                         // jeżeli wszyscy ukończyli zadanie, następuje ogłoszenie wyników
                         if (gui.app.leaderboard.size() == gui.app.playersCount) {
                             gui.app.place = 0;
-                            gui.app.status &= ~Consts.STARTED;
+                            gui.app.status &= ~Status.STARTED;
                             synchronized (gui.app.clients) {
                                 ExtendedPacket ep = new ExtendedPacket(Command.RESET, gui.app.leaderboard);
                                 for (ServerConnection client : gui.app.clients) {

@@ -15,7 +15,7 @@ public class ServerGUI extends JFrame {
     protected ServerApp app;
 
     public ServerGUI(ServerApp app) {
-        super("Serwer " + Consts.VERSION);
+        super("Serwer " + App.VERSION);
         this.app = app;
 
         setSize(450, 320);
@@ -30,7 +30,7 @@ public class ServerGUI extends JFrame {
         logs.setLineWrap(true);
         logs.setEditable(false);
 
-        port = new JTextField(Consts.DEFAULT_PORT, 8);
+        port = new JTextField(App.DEFAULT_PORT, 8);
         btnRunServer = new JButton("Uruchom");
         btnRunServer.setPreferredSize(new Dimension(120, 30));
 
@@ -48,7 +48,7 @@ public class ServerGUI extends JFrame {
         add(new JScrollPane(logs), BorderLayout.CENTER);
         add(btnTasks, BorderLayout.SOUTH);
 
-        for (int i = 0; i < Consts.MAX_PLAYERS; i++)
+        for (int i = 0; i < App.MAX_PLAYERS; i++)
             app.clients.add(null);
 
         Obsluga obsluga = new Obsluga();
@@ -65,10 +65,10 @@ public class ServerGUI extends JFrame {
         public void actionPerformed(ActionEvent e) {
 
             if (e.getSource() == btnRunServer) {
-                app.status ^= Consts.RUNNING;
-                if (app.checkStatusIfExistsFlag(Consts.RUNNING)) {
+                app.status ^= Status.RUNNING;
+                if (app.checkStatusIfExistsFlag(Status.RUNNING)) {
 
-                    for (int i = 0; i < Consts.MAX_PLAYERS; i++)
+                    for (int i = 0; i < App.MAX_PLAYERS; i++)
                         app.clients.set(i, null);
 
                     server = new Server(ServerGUI.this);
@@ -79,7 +79,7 @@ public class ServerGUI extends JFrame {
                 } else {
 
                     server.terminate();
-                    app.status &= ~Consts.STARTED;
+                    app.status &= ~Status.STARTED;
 
                     btnRunServer.setText("Uruchom");
                     port.setEnabled(true);
@@ -93,7 +93,7 @@ public class ServerGUI extends JFrame {
                         content = app.sendedTasks.poll();
                     }
 
-                    if (app.tasksCount.incrementAndGet() >= Consts.MAX_TEXTS_COUNT_IN_QUEUE)
+                    if (app.tasksCount.incrementAndGet() >= ServerApp.MAX_TEXTS_COUNT_IN_QUEUE)
                         btnTasks.setEnabled(false);
 
                     btnTasks.setText("Pokaż odebrane zadania (" + app.sendedTasks.size() + ")");

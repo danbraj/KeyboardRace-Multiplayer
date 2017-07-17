@@ -1,6 +1,7 @@
-class ClientApp {
+class ClientApp extends App {
 
-    protected int status = 0; // 0 - not connected, 1 - connected
+    public static final String DEFAULT_HOSTNAME = "localhost:" + App.DEFAULT_PORT;
+
     protected Client client;
     protected int playerId;
     protected Zadanie zadanie; // <- typedChars?
@@ -11,17 +12,9 @@ class ClientApp {
     }
 
     public static void main(String[] args) {
-        if (Consts.MAX_PLAYERS <= Consts.COLORS_OF_PLAYERS.length)
+        if (App.MAX_PLAYERS <= App.COLORS_OF_PLAYERS.length)
             new ClientApp();
         else
             System.exit(2);
-    }
-
-    protected boolean checkStatusIfExistsFlag(int flag) {
-        return (this.status & flag) == flag;
-    }
-
-    protected boolean checkStatusIfNotExistsFlag(int flag) {
-        return (this.status & flag) != flag;
     }
 }

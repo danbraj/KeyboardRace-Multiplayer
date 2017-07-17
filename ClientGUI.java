@@ -9,9 +9,7 @@ import javax.swing.border.EmptyBorder;
 
 public class ClientGUI extends JFrame {
 
-    protected Client client;//
-    protected PanelPlayer[] panelGracza = new PanelPlayer[Consts.MAX_PLAYERS];
-
+    protected PanelPlayer[] panelGracza = new PanelPlayer[App.MAX_PLAYERS];
     protected JTextArea text, logs;
     protected JPanel panelGraczy, panelGry, panelBoczny, panelLogowania, panelDodatkowy;
     protected JTextField host, input;
@@ -20,7 +18,7 @@ public class ClientGUI extends JFrame {
     protected ClientApp app;
 
     public ClientGUI(ClientApp app) {
-        super("Klient " + Consts.VERSION);
+        super("Klient " + App.VERSION);
         this.app = app;
 
         setSize(880, 600);
@@ -29,8 +27,8 @@ public class ClientGUI extends JFrame {
         setLayout(new BorderLayout());
 
         // -- panel z graczami
-        panelGraczy = new JPanel(new GridLayout(Consts.MAX_PLAYERS, 0));
-        for (int i = 0; i < Consts.MAX_PLAYERS; i++) {
+        panelGraczy = new JPanel(new GridLayout(App.MAX_PLAYERS, 0));
+        for (int i = 0; i < App.MAX_PLAYERS; i++) {
             panelGracza[i] = new PanelPlayer(i, this);
             panelGracza[i].setPreferredSize(new Dimension(40, 40));
             panelGraczy.add(panelGracza[i]);
@@ -65,7 +63,7 @@ public class ClientGUI extends JFrame {
 
                     // aktualizacja progresu i wysłanie go do serwera (docelowo do pozostałych klientów)
                     panelGracza[app.playerId].setProgressValue(app.zadanie.getProgress());
-                    client.sendObjectToServer(new Packet(Command.PROGRESS, app.playerId, app.zadanie.getProgress()));
+                    app.client.sendObjectToServer(new Packet(Command.PROGRESS, app.playerId, app.zadanie.getProgress()));
 
                     // aktywacja dostępności umiejętności, gdy osiągnięta została odpowiednia ilość punktów
                     boolean isChanged = false;
@@ -90,7 +88,7 @@ public class ClientGUI extends JFrame {
                     if (app.zadanie.isSuccess) {
                         input.setEnabled(false);
 
-                        client.sendObjectToServer(new Packet(Command.WIN, app.playerId));
+                        app.client.sendObjectToServer(new Packet(Command.WIN, app.playerId));
                         
                         text.setText("");
                         input.setText("");
@@ -122,13 +120,13 @@ public class ClientGUI extends JFrame {
         panelLogowania = new JPanel(new GridLayout(2, 2));
         panelLogowania.setBorder(new EmptyBorder(12, 10, 12, 10));
 
-        host = new JTextField(Consts.DEFAULT_HOSTNAME);
+        host = new JTextField(ClientApp.DEFAULT_HOSTNAME);
         host.setFont(new Font("Verdana", Font.PLAIN, 12));
         lbStatus = new JLabel("Status: niepołączony", SwingConstants.RIGHT);
         lbStatus.setForeground(Color.RED);
 
         panelLogowania.add(new JLabel("Serwer (host:port)"));
-        panelLogowania.add(new JLabel(Consts.VERSION, SwingConstants.RIGHT));
+        panelLogowania.add(new JLabel(App.VERSION, SwingConstants.RIGHT));
         panelLogowania.add(host);
         panelLogowania.add(lbStatus);
 
@@ -170,9 +168,9 @@ public class ClientGUI extends JFrame {
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                if (app.checkStatusIfExistsFlag(Consts.CONNECTED)) {
+                if (app.checkStatusIfExistsFlag(Status.CONNECTED)) {
 
-                    client.sendObjectToServer(new Packet(Command.LOGOUT));
+                    app.client.sendObjectToServer(new Packet(Command.LOGOUT));
                 }
                 setVisible(false);
                 System.exit(0);
@@ -196,9 +194,9 @@ public class ClientGUI extends JFrame {
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
-            client.sendObjectToServer(new Packet(Command.SEND_TEXT, ta.getText()));
+            app.client.sendObjectToServer(new Packet(Command.SEND_TEXT, ta.getText()));
         } else {
-            client.sendObjectToServer(new Packet(Command.SEND_TEXT, ""));
+            app.client.sendObjectToServer(new Packet(Command.SEND_TEXT, ""));
         }
     }
 
@@ -207,17 +205,17 @@ public class ClientGUI extends JFrame {
         public void actionPerformed(ActionEvent e) {
 
             if (e.getSource() == btnAddToServer) {
-                 client.sendObjectToServer(new Packet(Command.SEND_TEXT_REQUEST));
+                 app.client.sendObjectToServer(new Packet(Command.SEND_TEXT_REQUEST));
             } else if (e.getSource() == btnReady) {
-                 client.sendObjectToServer(new Packet(Command.CHANGE_READY));
+                 app.client.sendObjectToServer(new Packet(Command.CHANGE_READY));
             } else if (e.getSource() == btnLogon) {
-                if (app.checkStatusIfExistsFlag(Consts.CONNECTED)) {
-                     client.sendObjectToServer(new Packet(Command.LOGOUT));
+                if (app.checkStatusIfExistsFlag(Status.CONNECTED)) {
+                     app.client.sendObjectToServer(new Packet(Command.LOGOUT));
                 } else {
                     String[] hostParameters = host.getText().split(":", 2);
                     try {
-                        client = new Client(new Socket(hostParameters[0], new Integer(hostParameters[1])), ClientGUI.this);
-                        client.start();
+                        app.client = new Client(new Socket(hostParameters[0], new Integer(hostParameters[1])), ClientGUI.this);
+                        app.client.start();
                     } catch (UnknownHostException ex) {
                     } catch (IOException ex) {
                         addToEventLog("Nie można się połączyć z serwerem [" + hostParameters[0] + "]");
@@ -229,7 +227,7 @@ public class ClientGUI extends JFrame {
 
     // aktualizacja wyglądu UI aplikacji w zależności od stanu połączenia
     protected void updateUI() {
-        if (app.checkStatusIfExistsFlag(Consts.CONNECTED)) {
+        if (app.checkStatusIfExistsFlag(Status.CONNECTED)) {
             host.setEnabled(false);
             btnAddToServer.setEnabled(true);
 

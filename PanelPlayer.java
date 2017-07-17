@@ -20,7 +20,7 @@ public class PanelPlayer extends JPanel {
         this.clientGUI = clientGUI;
 
         JPanel color = new JPanel();
-        color.setBackground(Consts.COLORS_OF_PLAYERS[index]);
+        color.setBackground(ClientApp.COLORS_OF_PLAYERS[index]);
         color.setPreferredSize(new Dimension(40, 40));
 
         labelWithPlace = new JLabel("", SwingConstants.CENTER);
@@ -166,15 +166,15 @@ public class PanelPlayer extends JPanel {
 
             if (e.getSource() == btns[0]) {
                 if (clientGUI.updateSkillsAvailability(Debuff.INVISIBILITY)) {
-                    clientGUI.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.INVISIBILITY, panelId));
+                    clientGUI.app.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.INVISIBILITY, panelId));
                 }
             } else if (e.getSource() == btns[1]) {
                 if (clientGUI.updateSkillsAvailability(Debuff.REVERSE)) {
-                    clientGUI.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
+                    clientGUI.app.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
                 }
             } else if (e.getSource() == btns[2]) {
                 if (clientGUI.updateSkillsAvailability(Debuff.SHUFFLE)) {
-                    clientGUI.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
+                    clientGUI.app.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
                 }
             }
         }

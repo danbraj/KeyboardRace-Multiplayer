@@ -2,16 +2,18 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class ServerApp {
+class ServerApp extends App {
+    
+    public static final boolean ALLOWED_SENDING_TEXTS_BY_CLIENTS = true;
+    public static final int MAX_TEXTS_COUNT_IN_QUEUE = 3;
 
-    protected int status = 0; // 1 - connected, 2 - running, 4 - started
-    protected ArrayList<ServerConnection> clients = new ArrayList<ServerConnection>(Consts.MAX_PLAYERS);
-    protected ArrayList<Player> leaderboard = new ArrayList<>(Consts.MAX_PLAYERS);
+    protected ArrayList<ServerConnection> clients = new ArrayList<ServerConnection>(App.MAX_PLAYERS);
+    protected ArrayList<Player> leaderboard = new ArrayList<>(App.MAX_PLAYERS);
     protected int place = 0;
     protected int playersCount = 0;
-    protected boolean sendingTextsEnabled = Consts.ALLOWED_SENDING_TEXTS_BY_CLIENTS;
+    protected boolean sendingTextsEnabled = ALLOWED_SENDING_TEXTS_BY_CLIENTS;
     protected LinkedList<String> sendedTasks = new LinkedList<String>();
-    protected AtomicInteger tasksCount = new AtomicInteger(Consts.MAX_TEXTS_COUNT_IN_QUEUE);
+    protected AtomicInteger tasksCount = new AtomicInteger(MAX_TEXTS_COUNT_IN_QUEUE);
 
     private ServerApp() {
         new ServerGUI(this);
@@ -19,13 +21,5 @@ class ServerApp {
 
     public static void main(String[] args) {
         new ServerApp();
-    }
-
-    protected boolean checkStatusIfExistsFlag(int flag) {
-        return (this.status & flag) == flag;
-    }
-
-    protected boolean checkStatusIfNotExistsFlag(int flag) {
-        return (this.status & flag) != flag;
     }
 }

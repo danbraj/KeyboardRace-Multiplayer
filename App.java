@@ -1,9 +1,8 @@
 import java.awt.Color;
 
-public class Consts {
+class App {
     public static final String VERSION = "v0.9.2";
     public static final String DEFAULT_PORT = "2345";
-    public static final String DEFAULT_HOSTNAME = "localhost:" + Consts.DEFAULT_PORT;
     public static final int MAX_PLAYERS = 4;
     public static final Color[] COLORS_OF_PLAYERS = {
         Color.decode("#6077e0"), // niebieski
@@ -14,10 +13,14 @@ public class Consts {
         Color.decode("#ff8b17"), // pomaranczowy
         Color.decode("#c4e060")  // jasno zielony
     };
-    public static final int MAX_TEXTS_COUNT_IN_QUEUE = 3;
-    public static final boolean ALLOWED_SENDING_TEXTS_BY_CLIENTS = true;
 
-    public static final int CONNECTED = 1; // 0001 (flags)
-    public static final int RUNNING   = 2; // 0010
-    public static final int STARTED   = 4; // 0100
+    protected int status = 0; // 1 - connected, 2 - running, 4 - started
+
+    protected boolean checkStatusIfExistsFlag(int flag) {
+        return (this.status & flag) == flag;
+    }
+
+    protected boolean checkStatusIfNotExistsFlag(int flag) {
+        return (this.status & flag) != flag;
+    }
 }

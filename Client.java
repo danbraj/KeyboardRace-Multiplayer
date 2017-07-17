@@ -58,13 +58,13 @@ public class Client extends Thread { //todo rename to ClientConnection
             ois = new ObjectInputStream(socket.getInputStream());
             oos.flush();
 
-            gui.app.status |= Consts.CONNECTED;
+            gui.app.status |= Status.CONNECTED;
             gui.updateUI();
 
             this.sendObjectToServer(new Packet(Command.LOGIN_REQUEST));
 
             Packet packet = null;
-            while (gui.app.checkStatusIfNotExistsFlag(Consts.CONNECTED)) {
+            while (gui.app.checkStatusIfNotExistsFlag(Status.CONNECTED)) {
 
                 packet = (Packet) this.receiveObjectFromServer();
                 if (packet != null) {
@@ -99,7 +99,7 @@ public class Client extends Thread { //todo rename to ClientConnection
                     } else if (command == Command.LOGOUT) {
 
                         // ustawienia ui klienta po wylogowaniu
-                        gui.app.status &= ~Consts.CONNECTED;
+                        gui.app.status &= ~Status.CONNECTED;
                         String message = packet.getString();
                         if (message != null && !message.isEmpty())
                             gui.addToEventLog(message);
@@ -111,9 +111,9 @@ public class Client extends Thread { //todo rename to ClientConnection
                         // ustawienia ui panela gracza, który się wylogował
                         int deserterId = packet.getPlayerId();
 
-                        gui.app.status = packet.getBool() ? gui.app.status | Consts.STARTED
-                                : gui.app.status & ~Consts.STARTED;
-                        if ((gui.app.status & Consts.STARTED) == Consts.STARTED) {
+                        gui.app.status = packet.getBool() ? gui.app.status | Status.STARTED
+                                : gui.app.status & ~Status.STARTED;
+                        if ((gui.app.status & Status.STARTED) == Status.STARTED) {
 
                             gui.addToEventLog("Gracz " + gui.panelGracza[deserterId].getNick() + " uciekł!");
 
