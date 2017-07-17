@@ -14,11 +14,11 @@ public class Server implements Runnable {
 
     public void terminate() {
         try {
-            for (ServerConnection client : gui.app.clients) {
-                if (client != null) {
-                    client.sendObjectToClient(
-                            new Packet(Command.LOGOUT, client.getPlayer().getPlayerId(), "Serwer został wyłączony."));
-                    client.closeConnection();
+            for (ServerConnection conn : gui.app.clients) {
+                if (conn != null) {
+                    conn.sendPacket(
+                            new Packet(Command.LOGOUT, conn.getPlayer().getPlayerId(), "Serwer został wyłączony."));
+                    conn.closeConnection();
                 }
             }
             server.close();

@@ -166,15 +166,15 @@ public class PanelPlayer extends JPanel {
 
             if (e.getSource() == btns[0]) {
                 if (clientGUI.updateSkillsAvailability(Debuff.INVISIBILITY)) {
-                    clientGUI.app.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.INVISIBILITY, panelId));
+                    clientGUI.app.client.sendPacket(new Packet(Command.DEBUFF_CAST, Debuff.INVISIBILITY, panelId));
                 }
             } else if (e.getSource() == btns[1]) {
                 if (clientGUI.updateSkillsAvailability(Debuff.REVERSE)) {
-                    clientGUI.app.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
+                    clientGUI.app.client.sendPacket(new Packet(Command.DEBUFF_CAST, Debuff.REVERSE, panelId));
                 }
             } else if (e.getSource() == btns[2]) {
                 if (clientGUI.updateSkillsAvailability(Debuff.SHUFFLE)) {
-                    clientGUI.app.client.sendObjectToServer(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
+                    clientGUI.app.client.sendPacket(new Packet(Command.DEBUFF_CAST, Debuff.SHUFFLE, panelId));
                 }
             }
         }

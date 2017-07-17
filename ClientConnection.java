@@ -7,66 +7,26 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
 
-public class ClientConnection implements Runnable {
+public class ClientConnection extends Connection implements Runnable {
 
-    private Socket socket;
-    private ObjectInputStream ois;
-    private ObjectOutputStream oos;
     protected ClientGUI gui;
 
     public ClientConnection(Socket socket, ClientGUI gui) {
-        this.socket = socket;
+        super(socket);
         this.gui = gui;
     }
 
-    public void sendObjectToServer(Packet packet) {
-        this.sendObjectToServer(packet, false);
-    }
-
-    public void sendObjectToServer(Packet packet, boolean reset) {
-        try {
-            if (reset)
-                oos.reset();
-            oos.writeObject(packet);
-            oos.flush();
-        } catch (IOException e) {
-        }
-    }
-
-    public Object receiveObjectFromServer() {
-        try {
-            return ois.readObject();
-        } catch (ClassNotFoundException e) {
-            return null;
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    public void closeClientConnection() {
-        try {
-            ois.close();
-            oos.close();
-            socket.close();
-        } catch (IOException e) {
-        }
-    }
-
     public void run() {
-        try {
-            oos = new ObjectOutputStream(socket.getOutputStream());
-            ois = new ObjectInputStream(socket.getInputStream());
-            oos.flush();
-
+        // try {
             gui.app.status |= Status.CONNECTED;
             gui.updateUI();
-
-            this.sendObjectToServer(new Packet(Command.LOGIN_REQUEST));
+            
+            sendPacket(new Packet(Command.LOGIN_REQUEST));
 
             Packet packet = null;
             while (gui.app.checkStatusIfExistsFlag(Status.CONNECTED)) {
 
-                packet = (Packet) this.receiveObjectFromServer();
+                packet = receivePacket();
                 if (packet != null) {
 
                     Command command = packet.getCommand();
@@ -77,14 +37,14 @@ public class ClientConnection implements Runnable {
                         if (nick != null) {
                             nick = nick.trim().toUpperCase();
                             if (nick.equals("")) {
-                                sendObjectToServer(new Packet(Command.LOGOUT));
+                                sendPacket(new Packet(Command.LOGOUT));
                                 gui.addToEventLog("Niepoprawny nick, zostałeś rozłączony.");
                             } else {
                                 // jeżeli nazwa użytkownika spełnia wymagania to.. poinformuj serwer
                                 if (nick.length() > 6)
                                     nick = nick.substring(0, 6);
 
-                                sendObjectToServer(new Packet(Command.NICK_SET, nick));
+                                sendPacket(new Packet(Command.NICK_SET, nick));
 
                                 gui.app.playerId = packet.getPlayerId();
                                 gui.panelGracza[gui.app.playerId].resetActionPoints();
@@ -92,7 +52,7 @@ public class ClientConnection implements Runnable {
                                 gui.btnReady.setEnabled(true);
                             }
                         } else {
-                            sendObjectToServer(new Packet(Command.LOGOUT));
+                            sendPacket(new Packet(Command.LOGOUT));
                             gui.addToEventLog("Wylogowano.");
                         }
 
@@ -231,7 +191,7 @@ public class ClientConnection implements Runnable {
                             gui.castDebuff(debuff);
                             new java.util.Timer().schedule(new java.util.TimerTask() {
                                 public void run() {
-                                    sendObjectToServer(new Packet(Command.DEBUFF_CLEAR, debuff, targetId));
+                                    sendPacket(new Packet(Command.DEBUFF_CLEAR, debuff, targetId));
                                     gui.clearDebuff(debuff);
                                 }
                             }, durationTime * 1000);
@@ -250,18 +210,17 @@ public class ClientConnection implements Runnable {
                             gui.panelGracza[targetId].setSkillActivity(2, false);
                     }
                 }
-
             }
-        } catch (UnknownHostException e) {
-            gui.addToEventLog("Błąd połączenia!");
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Prawdopodobnie serwer nie jest włączony.", "Informacja",
-                    JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
-        } catch (NullPointerException e) {
-            gui.addToEventLog(e.toString());
-        } finally {
-            closeClientConnection();
-        }
+        // } catch (UnknownHostException e) {
+        //     gui.addToEventLog("Błąd połączenia!");
+        // } catch (IOException e) {
+        //     JOptionPane.showMessageDialog(null, "Prawdopodobnie serwer nie jest włączony.", "Informacja",
+        //             JOptionPane.ERROR_MESSAGE);
+        //     System.exit(1);
+        // } catch (NullPointerException e) {
+        //     gui.addToEventLog(e.toString());
+        // } finally {
+            closeConnection();
+        // }
     }
 }

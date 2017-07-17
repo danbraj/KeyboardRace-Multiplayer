@@ -63,7 +63,7 @@ public class ClientGUI extends JFrame {
 
                     // aktualizacja progresu i wysłanie go do serwera (docelowo do pozostałych klientów)
                     panelGracza[app.playerId].setProgressValue(app.zadanie.getProgress());
-                    app.client.sendObjectToServer(new Packet(Command.PROGRESS, app.playerId, app.zadanie.getProgress()));
+                    app.client.sendPacket(new Packet(Command.PROGRESS, app.playerId, app.zadanie.getProgress()));
 
                     // aktywacja dostępności umiejętności, gdy osiągnięta została odpowiednia ilość punktów
                     boolean isChanged = false;
@@ -88,7 +88,7 @@ public class ClientGUI extends JFrame {
                     if (app.zadanie.isSuccess) {
                         input.setEnabled(false);
 
-                        app.client.sendObjectToServer(new Packet(Command.WIN, app.playerId));
+                        app.client.sendPacket(new Packet(Command.WIN, app.playerId));
                         
                         text.setText("");
                         input.setText("");
@@ -170,7 +170,7 @@ public class ClientGUI extends JFrame {
             public void windowClosing(WindowEvent e) {
                 if (app.checkStatusIfExistsFlag(Status.CONNECTED)) {
 
-                    app.client.sendObjectToServer(new Packet(Command.LOGOUT));
+                    app.client.sendPacket(new Packet(Command.LOGOUT));
                 }
                 setVisible(false);
                 System.exit(0);
@@ -194,9 +194,9 @@ public class ClientGUI extends JFrame {
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
-            app.client.sendObjectToServer(new Packet(Command.SEND_TEXT, ta.getText()));
+            app.client.sendPacket(new Packet(Command.SEND_TEXT, ta.getText()));
         } else {
-            app.client.sendObjectToServer(new Packet(Command.SEND_TEXT, ""));
+            app.client.sendPacket(new Packet(Command.SEND_TEXT, ""));
         }
     }
 
@@ -205,12 +205,12 @@ public class ClientGUI extends JFrame {
         public void actionPerformed(ActionEvent e) {
 
             if (e.getSource() == btnAddToServer) {
-                 app.client.sendObjectToServer(new Packet(Command.SEND_TEXT_REQUEST));
+                 app.client.sendPacket(new Packet(Command.SEND_TEXT_REQUEST));
             } else if (e.getSource() == btnReady) {
-                 app.client.sendObjectToServer(new Packet(Command.CHANGE_READY));
+                 app.client.sendPacket(new Packet(Command.CHANGE_READY));
             } else if (e.getSource() == btnLogon) {
                 if (app.checkStatusIfExistsFlag(Status.CONNECTED)) {
-                     app.client.sendObjectToServer(new Packet(Command.LOGOUT));
+                     app.client.sendPacket(new Packet(Command.LOGOUT));
                 } else {
                     String[] hostParameters = host.getText().split(":", 2);
                     try {

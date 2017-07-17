@@ -8,51 +8,15 @@ import java.util.ArrayList;
 import java.util.Random;
 import javax.swing.JTextArea;
 
-public class ServerConnection implements Runnable {
+public class ServerConnection extends Connection implements Runnable {
 
-    private Socket socket;
-    private ObjectInputStream ois;
-    private ObjectOutputStream oos;
     private Player player;
     private boolean isConnected = true;
     protected ServerGUI gui;
 
     public ServerConnection(Socket socket, ServerGUI gui) {
-        this.socket = socket;
+        super(socket);
         this.gui = gui;
-    }
-
-    public void sendObjectToClient(Packet packet) {
-        this.sendObjectToClient(packet, false);
-    }
-
-    public void sendObjectToClient(Packet packet, boolean reset) {
-        try {
-            if (reset)
-                oos.reset();
-            oos.writeObject(packet);
-            oos.flush();
-        } catch (IOException e) {
-        }
-    }
-
-    public Object receiveObjectFromClient() {
-        try {
-            return ois.readObject();
-        } catch (ClassNotFoundException e) {
-            return null;
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    public void closeConnection() {
-        try {
-            ois.close();
-            oos.close();
-            socket.close();
-        } catch (IOException e) {
-        }
     }
 
     public Player getPlayer() {
@@ -60,15 +24,12 @@ public class ServerConnection implements Runnable {
     }
 
     public void run() {
-        try {
-            oos = new ObjectOutputStream(socket.getOutputStream());
-            ois = new ObjectInputStream(socket.getInputStream());
-            oos.flush();
-
-            Packet packet = null;
+        Packet packet = null;
+        //try {
             while (gui.app.checkStatusIfExistsFlag(Status.RUNNING) && isConnected) {
 
-                packet = (Packet) this.receiveObjectFromClient();
+                packet = receivePacket();
+
                 if (packet != null) {
 
                     Command command = packet.getCommand();
@@ -89,7 +50,7 @@ public class ServerConnection implements Runnable {
                                         player = new Player(index);
                                         areFreeSlots = true;
 
-                                        sendObjectToClient(new Packet(Command.LOGIN_RESPONSE, player.getPlayerId()));
+                                        sendPacket(new Packet(Command.LOGIN_RESPONSE, player.getPlayerId()));
                                         gui.addLog("Użytkownik " + connectionIp + " został połączony (SLOT "
                                                 + player.getPlayerId() + ").");
                                         break;
@@ -98,12 +59,12 @@ public class ServerConnection implements Runnable {
                             }
 
                             if (!areFreeSlots) {
-                                sendObjectToClient(new Packet(Command.LOGOUT, "Niestety nie ma wolnych miejsc :<"));
+                                sendPacket(new Packet(Command.LOGOUT, "Niestety nie ma wolnych miejsc :<"));
                                 gui.addLog("Użytkownik " + connectionIp
                                         + " został rozłączony, z powodu braku wolnego miejsca.");
                             }
                         } else {
-                            sendObjectToClient(new Packet(Command.LOGOUT, "Niestety rozgrywka już się rozpoczęła :<"));
+                            sendPacket(new Packet(Command.LOGOUT, "Niestety rozgrywka już się rozpoczęła :<"));
                             gui.addLog("Użytkownik " + connectionIp
                                     + " został rozłączony, ponieważ rozgrywka już się rozpoczęła.");
                         }
@@ -111,20 +72,20 @@ public class ServerConnection implements Runnable {
                     } else if (command == Command.LOGOUT) {
 
                         // poinformowanie pozostałych użytkowników o wylogowującym się użytkowników
-                        for (ServerConnection client : gui.app.clients) {
-                            if (client != null && client != this)
-                                client.sendObjectToClient(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getPlayerId(),
+                        for (ServerConnection connection : gui.app.clients) {
+                            if (connection != null && connection != this)
+                                connection.sendPacket(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getPlayerId(),
                                         gui.app.checkStatusIfExistsFlag(Status.STARTED)));
                         }
 
                         // usunięcie użytkownika z listy użytkowników
-                        sendObjectToClient(new Packet(Command.LOGOUT, player.getPlayerId()));//
+                        sendPacket(new Packet(Command.LOGOUT, player.getPlayerId()));
                         gui.addLog("Użytkownik " + socket.getInetAddress().getHostAddress()
                                 + " został rozłączony (SLOT " + player.getPlayerId() + ").");
 
                         this.isConnected = false;
                         synchronized (gui.app.clients) {
-                            gui.app.clients.set(player.getPlayerId(), null);
+                            gui.app.clients.set(player.getPlayerId(), null);//zamiast closeConnection nullowanie
                         }
 
                         // zatrzymanie rozgrywki, jeżeli ktoś wyszedł w trakcie gry
@@ -137,16 +98,16 @@ public class ServerConnection implements Runnable {
 
                         synchronized (gui.app.clients) {
                             ArrayList<Player> players = new ArrayList<Player>();
-                            for (ServerConnection client : gui.app.clients)
-                                if (client != null)
-                                    players.add(client.player);
+                            for (ServerConnection connection : gui.app.clients)
+                                if (connection != null)
+                                    players.add(connection.player);
 
                             // aktualizacja użytkownków dla nowego użytkownika 
                             // poinformowanie innych użytkowników o nowym użytkowniku
                             ExtendedPacket extendedPacket = new ExtendedPacket(Command.UPDATE_PLAYERS_LIST, players);
-                            for (ServerConnection client : gui.app.clients)
-                                if (client != null)
-                                    client.sendObjectToClient(extendedPacket, true);
+                            for (ServerConnection connection : gui.app.clients)
+                                if (connection != null)
+                                    connection.sendPacket(extendedPacket, true);
                         }
 
                     } else if (command == Command.CHANGE_READY) {
@@ -155,12 +116,12 @@ public class ServerConnection implements Runnable {
                         boolean isReady = player.toggleAndGetReady();
                         boolean isReadyAll = true;
                         Packet newPacket = new Packet(Command.CHANGE_READY, player.getPlayerId(), isReady);
-                        for (ServerConnection client : gui.app.clients) {
-                            if (client != null) {
+                        for (ServerConnection connection : gui.app.clients) {
+                            if (connection != null) {
                                 if (isReadyAll)
-                                    if (!client.player.isReady)
+                                    if (!connection.player.isReady)
                                         isReadyAll = false;
-                                client.sendObjectToClient(newPacket);
+                                connection.sendPacket(newPacket);
                             }
                         }
 
@@ -178,11 +139,11 @@ public class ServerConnection implements Runnable {
                                 synchronized (gui.app.clients) {
                                     gui.app.playersCount = 0;
                                     Packet extendedPacket = new ExtendedPacket(Command.START_GAME, zadanie);
-                                    for (ServerConnection client : gui.app.clients) {
-                                        if (client != null) {
+                                    for (ServerConnection connection : gui.app.clients) {
+                                        if (connection != null) {
                                             gui.app.playersCount++;
-                                            client.sendObjectToClient(extendedPacket);
-                                            client.getPlayer().setUnready();
+                                            connection.sendPacket(extendedPacket);
+                                            connection.getPlayer().setUnready();
                                         }
                                     }
                                 }
@@ -197,9 +158,9 @@ public class ServerConnection implements Runnable {
                         int senderId = packet.getPlayerId();
                         int progress = packet.getInt();
                         Packet newPacket = new Packet(Command.PROGRESS, senderId, progress);
-                        for (ServerConnection client : gui.app.clients) {
-                            if (client != null)
-                                client.sendObjectToClient(newPacket);
+                        for (ServerConnection connection : gui.app.clients) {
+                            if (connection != null)
+                                connection.sendPacket(newPacket);
                         }
 
                     } else if (command == Command.WIN) {
@@ -209,9 +170,9 @@ public class ServerConnection implements Runnable {
                         synchronized (gui.app.clients) {
                             gui.app.place++;
                             Packet newPacket = new Packet(Command.WIN, winnerId, gui.app.place);
-                            for (ServerConnection client : gui.app.clients) {
-                                if (client != null)
-                                    client.sendObjectToClient(newPacket);
+                            for (ServerConnection connection : gui.app.clients) {
+                                if (connection != null)
+                                    connection.sendPacket(newPacket);
                             }
                         }
 
@@ -226,9 +187,9 @@ public class ServerConnection implements Runnable {
                             gui.app.status &= ~Status.STARTED;
                             synchronized (gui.app.clients) {
                                 ExtendedPacket ep = new ExtendedPacket(Command.RESET, gui.app.leaderboard);
-                                for (ServerConnection client : gui.app.clients) {
-                                    if (client != null)
-                                        client.sendObjectToClient(ep, true);
+                                for (ServerConnection connection : gui.app.clients) {
+                                    if (connection != null)
+                                        connection.sendPacket(ep, true);
                                 }
                             }
                             gui.app.leaderboard.clear();
@@ -242,12 +203,12 @@ public class ServerConnection implements Runnable {
                                 // jeżeli nie został osiągnięty limit tekstów w poczekalni to..
                                 if (gui.app.tasksCount.get() > 0) {
                                     gui.app.tasksCount.decrementAndGet();
-                                    sendObjectToClient(new Packet(Command.SEND_TEXT_RESPONSE, true));
+                                    sendPacket(new Packet(Command.SEND_TEXT_RESPONSE, true));
                                 } else
-                                    sendObjectToClient(new Packet(Command.SEND_TEXT_RESPONSE, false));
+                                    sendPacket(new Packet(Command.SEND_TEXT_RESPONSE, false));
                             }
                         } else
-                            sendObjectToClient(new Packet(Command.SEND_TEXT_RESPONSE, false));
+                            sendPacket(new Packet(Command.SEND_TEXT_RESPONSE, false));
 
                     } else if (command == Command.SEND_TEXT) {
 
@@ -266,16 +227,16 @@ public class ServerConnection implements Runnable {
                     } else if (command == Command.DEBUFF_CAST || command == Command.DEBUFF_CLEAR) {
 
                         // przekazanie otrzymanego pakietu do wszystkich klientów
-                        for (ServerConnection client : gui.app.clients)
-                            if (client != null)
-                                client.sendObjectToClient(packet);
+                        for (ServerConnection connection : gui.app.clients)
+                            if (connection != null)
+                                connection.sendPacket(packet);
                     }
                 }
             }
-        } catch (Exception e) {
-            System.out.println(e);
-        } finally {
+        // } catch (Exception e) {
+        //     System.out.println(e);
+        // } finally {
             closeConnection();
-        }
+        // }
     }
 }
