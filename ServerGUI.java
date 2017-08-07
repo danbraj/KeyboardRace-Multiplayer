@@ -58,7 +58,7 @@ public class ServerGUI extends JFrame {
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                if (app.checkStatusIfExistsFlag(Status.RUNNING)) {
+                if (App.isStateContains(App.State.RUNNING)) {
                     server.terminate();
                 }
                 setVisible(false);
@@ -79,8 +79,8 @@ public class ServerGUI extends JFrame {
         public void actionPerformed(ActionEvent e) {
 
             if (e.getSource() == btnRunServer) {
-                app.status ^= Status.RUNNING;
-                if (app.checkStatusIfExistsFlag(Status.RUNNING)) {
+                App.STATUS ^= App.State.RUNNING;
+                if (App.isStateContains(App.State.RUNNING)) {
 
                     for (int i = 0; i < App.MAX_PLAYERS; i++)
                         app.clients.set(i, null);
@@ -93,7 +93,7 @@ public class ServerGUI extends JFrame {
                 } else {
 
                     server.terminate();
-                    app.status &= ~Status.STARTED;
+                    App.STATUS &= ~App.State.STARTED;
 
                     btnRunServer.setText("Uruchom");
                     port.setEnabled(true);

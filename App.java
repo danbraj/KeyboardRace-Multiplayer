@@ -14,13 +14,26 @@ class App {
         Color.decode("#c4e060")  // jasno zielony
     };
 
-    protected int status = 0; // 1 - connected, 2 - running, 4 - started
+    /**
+     * Status aplikacji
+     */
+    public static byte STATUS = 0;
 
-    protected boolean checkStatusIfExistsFlag(int flag) {
-        return (this.status & flag) == flag;
+    /**
+     * Metoda sprawdzająca czy zmienna statyczna <code>App.STATUS</code>
+     * zawiera flagę podaną jako parametr
+     */
+    public static boolean isStateContains(byte flag) {
+        return (App.STATUS & flag) == flag;
     }
 
-    protected boolean checkStatusIfNotExistsFlag(int flag) {
-        return (this.status & flag) != flag;
+    /**
+     * Klasa zawierająca wszystkie możliwe wartości flag, które można przypisać
+     * do zmiennej statycznej <code>App.STATUS</code>
+     */
+    public static class State {
+        public static final byte CONNECTED = 1;  // 0001 (flags)
+        public static final byte RUNNING = 2;    // 0010
+        public static final byte STARTED = 4;    // 0100
     }
 }

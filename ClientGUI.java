@@ -168,7 +168,7 @@ public class ClientGUI extends JFrame {
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                if (app.checkStatusIfExistsFlag(Status.CONNECTED)) {
+                if (App.isStateContains(App.State.CONNECTED)) {
 
                     app.client.sendPacket(new Packet(Command.LOGOUT));
                 }
@@ -209,7 +209,7 @@ public class ClientGUI extends JFrame {
             } else if (e.getSource() == btnReady) {
                  app.client.sendPacket(new Packet(Command.CHANGE_READY));
             } else if (e.getSource() == btnLogon) {
-                if (app.checkStatusIfExistsFlag(Status.CONNECTED)) {
+                if (App.isStateContains(App.State.CONNECTED)) {
                      app.client.sendPacket(new Packet(Command.LOGOUT));
                 } else {
                     String[] hostParameters = host.getText().split(":", 2);
@@ -228,7 +228,7 @@ public class ClientGUI extends JFrame {
 
     // aktualizacja wyglądu UI aplikacji w zależności od stanu połączenia
     protected void updateUI() {
-        if (app.checkStatusIfExistsFlag(Status.CONNECTED)) {
+        if (App.isStateContains(App.State.CONNECTED)) {
             host.setEnabled(false);
             btnAddToServer.setEnabled(true);
 
