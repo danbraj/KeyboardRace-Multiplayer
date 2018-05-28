@@ -33,7 +33,7 @@ public class Server implements Runnable {
             gui.addLog("Serwer uruchomiony na porcie: " + server.getLocalPort());
             gui.addLog("Maksymalna pojemność serwera to " + gui.app.clients.size() + " miejsc.");
 
-            while (App.isStateContains(App.State.RUNNING)) {
+            while (Common.isStatusContainsFlag(Status.RUNNING)) {
                 Socket socket = server.accept();
                 (new Thread(new ServerConnection(socket, gui))).start();
                 //new ServerConnection(socket, gui).start();

@@ -18,7 +18,7 @@ public class ServerConnection extends Connection implements Runnable {
 
     public void run() {
         Packet packet = null;
-        while (App.isStateContains(App.State.RUNNING) && isConnected) {
+        while (Common.isStatusContainsFlag(Status.RUNNING) && isConnected) {
 
             packet = receivePacket();
             if (packet != null) {
@@ -28,7 +28,7 @@ public class ServerConnection extends Connection implements Runnable {
 
                     String connectionIp = socket.getInetAddress().getHostAddress();
 
-                    if (!App.isStateContains(App.State.STARTED)) {
+                    if (!Common.isStatusContainsFlag(Status.STARTED)) {
 
                         gui.addLog("Użytkownik " + connectionIp + " próbuje się połączyć.");
 
@@ -66,7 +66,7 @@ public class ServerConnection extends Connection implements Runnable {
                     for (ServerConnection connection : gui.app.clients) {
                         if (connection != null && connection != this)
                             connection.sendPacket(new Packet(Command.LOGOUT_PLAYER_NOTIFY, player.getPlayerId(),
-                                    App.isStateContains(App.State.STARTED)));
+                                    Common.isStatusContainsFlag(Status.STARTED)));
                     }
 
                     // usunięcie użytkownika z listy użytkowników
@@ -80,8 +80,8 @@ public class ServerConnection extends Connection implements Runnable {
                     }
 
                     // zatrzymanie rozgrywki, jeżeli ktoś wyszedł w trakcie gry
-                    if (App.isStateContains(App.State.STARTED))
-                        App.STATUS &= ~App.State.STARTED;
+                    if (Common.isStatusContainsFlag(Status.STARTED))
+                        App.STATUS &= ~Status.STARTED;
 
                 } else if (command == Command.NICK_SET) {
 
@@ -118,7 +118,7 @@ public class ServerConnection extends Connection implements Runnable {
 
                     // jeżeli wszyscy użytkownicy byli gotowi to startuje gra
                     if (isReadyAll) {
-                        App.STATUS |= App.State.STARTED;
+                        App.STATUS |= Status.STARTED;
 
                         synchronized (gui.app.leaderboard) {
                             gui.app.leaderboard.clear();
@@ -175,7 +175,7 @@ public class ServerConnection extends Connection implements Runnable {
                     // jeżeli wszyscy ukończyli zadanie, następuje ogłoszenie wyników
                     if (gui.app.leaderboard.size() == gui.app.playersCount) {
                         gui.app.place = 0;
-                        App.STATUS &= ~App.State.STARTED;
+                        App.STATUS &= ~Status.STARTED;
                         synchronized (gui.app.clients) {
                             ExtendedPacket ep = new ExtendedPacket(Command.RESET, gui.app.leaderboard);
                             for (ServerConnection connection : gui.app.clients) {

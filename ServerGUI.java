@@ -15,7 +15,7 @@ public class ServerGUI extends JFrame {
     protected ServerApp app;
 
     public ServerGUI(ServerApp app) {
-        super("Serwer " + App.VERSION);
+        super(String.format("%s - Serwer %s", App.APPLICATION_NAME, App.VERSION));
         this.app = app;
 
         setSize(450, 320);
@@ -58,7 +58,7 @@ public class ServerGUI extends JFrame {
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                if (App.isStateContains(App.State.RUNNING)) {
+                if (Common.isStatusContainsFlag(Status.RUNNING)) {
                     server.terminate();
                 }
                 setVisible(false);
@@ -79,8 +79,8 @@ public class ServerGUI extends JFrame {
         public void actionPerformed(ActionEvent e) {
 
             if (e.getSource() == btnRunServer) {
-                App.STATUS ^= App.State.RUNNING;
-                if (App.isStateContains(App.State.RUNNING)) {
+                App.STATUS ^= Status.RUNNING;
+                if (Common.isStatusContainsFlag(Status.RUNNING)) {
 
                     for (int i = 0; i < App.MAX_PLAYERS; i++)
                         app.clients.set(i, null);
@@ -93,7 +93,7 @@ public class ServerGUI extends JFrame {
                 } else {
 
                     server.terminate();
-                    App.STATUS &= ~App.State.STARTED;
+                    App.STATUS &= ~Status.STARTED;
 
                     btnRunServer.setText("Uruchom");
                     port.setEnabled(true);
@@ -139,7 +139,7 @@ public class ServerGUI extends JFrame {
 
             if (result == JOptionPane.YES_OPTION) {
                 FilesService.stringToFile(tf.getText() + ".txt", ta.getText());
-                // todo obsługa błędów i sprawdzić poprawność nazwy pliku
+                // TODO: obsługa błędów i sprawdzić poprawność nazwy pliku
             }
         }
     }

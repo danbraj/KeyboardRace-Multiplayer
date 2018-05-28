@@ -13,12 +13,12 @@ public class ClientGUI extends JFrame {
     protected JTextArea text, logs;
     protected JPanel panelGraczy, panelGry, panelBoczny, panelLogowania, panelDodatkowy;
     protected JTextField host, input;
-    protected JButton btnHowToPlay, btnAddToServer, btnReady, btnLogon;
+    protected JButton btnDocumentation, btnAddToServer, btnReady, btnLogon;
     protected JLabel lbStatus;
     protected ClientApp app;
 
     public ClientGUI(ClientApp app) {
-        super("Klient " + App.VERSION);
+        super(String.format("%s - Klient aplikacji %s", App.APPLICATION_NAME, App.VERSION));
         this.app = app;
 
         setSize(880, 600);
@@ -57,15 +57,18 @@ public class ClientGUI extends JFrame {
         input.getActionMap().put("space", new AbstractAction() {
             public void actionPerformed(ActionEvent evt) {
 
-                // usunięcie pierwszego wyrazu z tekstu, gdy jest zgodny z napisanym w polu tekstowym
+                // usunięcie pierwszego wyrazu z tekstu, gdy jest zgodny z napisanym w polu 
+                // ekstowym
                 String stringToCut = input.getText().trim();
                 if (app.zadanie.ifEqualsGoNext(stringToCut)) {
 
-                    // aktualizacja progresu i wysłanie go do serwera (docelowo do pozostałych klientów)
+                    // aktualizacja progresu i wysłanie go do serwera (docelowo do pozostałych k
+                    // ientów)
                     panelGracza[app.playerId].setProgressValue(app.zadanie.getProgress());
                     app.client.sendPacket(new Packet(Command.PROGRESS, app.playerId, app.zadanie.getProgress()));
 
-                    // aktywacja dostępności umiejętności, gdy osiągnięta została odpowiednia ilość punktów
+                    // aktywacja dostępności umiejętności, gdy osiągnięta została odpowiednia ilość 
+                    // unktów
                     boolean isChanged = false;
                     int idSkill = -1, ap = panelGracza[app.playerId].addActionPointAndGet();
                     if (ap == Variety.HIDE_INPUT_CONTENT.getCost()) {
@@ -89,7 +92,7 @@ public class ClientGUI extends JFrame {
                         input.setEnabled(false);
 
                         app.client.sendPacket(new Packet(Command.WIN, app.playerId));
-                        
+
                         text.setText("");
                         input.setText("");
                     } else {
@@ -134,8 +137,9 @@ public class ClientGUI extends JFrame {
         panelDodatkowy = new JPanel(new GridLayout(2, 2));
 
         Obsluga obsluga = new Obsluga();
-        btnHowToPlay = new JButton("Jak grać?");
-        btnHowToPlay.setEnabled(false);
+        btnDocumentation = new JButton("Dokumentacja aplikacji");
+        btnDocumentation.setEnabled(true);
+        btnDocumentation.addActionListener(obsluga);
         btnAddToServer = new JButton("Dodaj tekst do gry");
         btnAddToServer.addActionListener(obsluga);
         btnAddToServer.setEnabled(false);
@@ -149,9 +153,9 @@ public class ClientGUI extends JFrame {
         panelDodatkowy.add(btnLogon);
         panelDodatkowy.add(btnAddToServer);
         panelDodatkowy.add(btnReady);
-        panelDodatkowy.add(btnHowToPlay);
+        panelDodatkowy.add(btnDocumentation);
 
-        // ---- panel (opakowanie) dla panelu z informacjami i przyciskami 
+        // ---- panel (opakowanie) dla panelu z informacjami i przyciskami
         JPanel opakowanie = new JPanel();
         opakowanie.setLayout(new BoxLayout(opakowanie, BoxLayout.Y_AXIS));
 
@@ -168,7 +172,7 @@ public class ClientGUI extends JFrame {
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                if (App.isStateContains(App.State.CONNECTED)) {
+                if (Common.isStatusContainsFlag(Status.CONNECTED)) {
 
                     app.client.sendPacket(new Packet(Command.LOGOUT));
                 }
@@ -205,22 +209,36 @@ public class ClientGUI extends JFrame {
         public void actionPerformed(ActionEvent e) {
 
             if (e.getSource() == btnAddToServer) {
-                 app.client.sendPacket(new Packet(Command.SEND_TEXT_REQUEST));
+
+                app.client.sendPacket(new Packet(Command.SEND_TEXT_REQUEST));
+
             } else if (e.getSource() == btnReady) {
-                 app.client.sendPacket(new Packet(Command.CHANGE_READY));
+
+                app.client.sendPacket(new Packet(Command.CHANGE_READY));
+
             } else if (e.getSource() == btnLogon) {
-                if (App.isStateContains(App.State.CONNECTED)) {
-                     app.client.sendPacket(new Packet(Command.LOGOUT));
+
+                if (Common.isStatusContainsFlag(Status.CONNECTED)) {
+                    app.client.sendPacket(new Packet(Command.LOGOUT));
                 } else {
                     String[] hostParameters = host.getText().split(":", 2);
                     try {
-                        app.client = new ClientConnection(new Socket(hostParameters[0], new Integer(hostParameters[1])), ClientGUI.this);
+                        app.client = new ClientConnection(new Socket(hostParameters[0], new Integer(hostParameters[1])),
+                                ClientGUI.this);
                         (new Thread(app.client)).start();
-                        //app.client.start();
+                        // app.client.start();
                     } catch (UnknownHostException ex) {
                     } catch (IOException ex) {
                         addToEventLog("Nie można się połączyć z serwerem [" + hostParameters[0] + "]");
                     }
+                }
+
+            } else if (e.getSource() == btnDocumentation) {
+                
+                try {
+                    Desktop.getDesktop().browse(new URI("https://github.com/danbraj/psr-projekt"));
+                } catch (Exception ex) {
+                    addToEventLog("Nie udało się przejść do dokumentacji aplikacji.");
                 }
             }
         }
@@ -228,7 +246,7 @@ public class ClientGUI extends JFrame {
 
     // aktualizacja wyglądu UI aplikacji w zależności od stanu połączenia
     protected void updateUI() {
-        if (App.isStateContains(App.State.CONNECTED)) {
+        if (Common.isStatusContainsFlag(Status.CONNECTED)) {
             host.setEnabled(false);
             btnAddToServer.setEnabled(true);
 

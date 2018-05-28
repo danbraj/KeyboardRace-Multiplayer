@@ -20,7 +20,7 @@ public class PanelPlayer extends JPanel {
         this.clientGUI = clientGUI;
 
         JPanel color = new JPanel();
-        color.setBackground(ClientApp.COLORS_OF_PLAYERS[index]);
+        color.setBackground(Color.decode(ClientApp.COLOR_CODES_OF_PLAYERS[index]));
         color.setPreferredSize(new Dimension(40, 40));
 
         labelWithPlace = new JLabel("", SwingConstants.CENTER);

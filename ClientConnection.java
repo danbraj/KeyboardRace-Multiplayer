@@ -13,13 +13,13 @@ public class ClientConnection extends Connection implements Runnable {
 
     public void run() {
 
-        App.STATUS |= App.State.CONNECTED;
+        App.STATUS |= Status.CONNECTED;
         gui.updateUI();
 
         sendPacket(new Packet(Command.LOGIN_REQUEST));
 
         Packet packet = null;
-        while (App.isStateContains(App.State.CONNECTED)) {
+        while (Common.isStatusContainsFlag(Status.CONNECTED)) {
 
             packet = receivePacket();
             if (packet != null) {
@@ -54,7 +54,7 @@ public class ClientConnection extends Connection implements Runnable {
                 } else if (command == Command.LOGOUT) {
 
                     // ustawienia ui klienta po wylogowaniu
-                    App.STATUS &= ~App.State.CONNECTED;
+                    App.STATUS &= ~Status.CONNECTED;
                     String message = packet.getString();
                     if (message != null && !message.isEmpty())
                         gui.addToEventLog(message);
@@ -66,10 +66,10 @@ public class ClientConnection extends Connection implements Runnable {
                     // ustawienia ui panela gracza, który się wylogował
                     int deserterId = packet.getPlayerId();
 
-                    App.STATUS = (byte) (packet.getBool() ? App.STATUS | App.State.STARTED
-                            : App.STATUS & ~App.State.STARTED);
+                    App.STATUS = (byte) (packet.getBool() ? App.STATUS | Status.STARTED
+                            : App.STATUS & ~Status.STARTED);
 
-                    if (App.isStateContains(App.State.STARTED)) {
+                    if (Common.isStatusContainsFlag(Status.STARTED)) {
 
                         gui.addToEventLog("Gracz " + gui.panelGracza[deserterId].getNick() + " uciekł!");
 
