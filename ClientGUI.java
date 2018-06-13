@@ -60,7 +60,7 @@ public class ClientGUI extends JFrame {
                 // usunięcie pierwszego wyrazu z tekstu, gdy jest zgodny z napisanym w polu 
                 // ekstowym
                 String stringToCut = input.getText().trim();
-                if (app.zadanie.ifEqualsGoNext(stringToCut)) {
+                if (app.zadanie.wordPadIfEquals(stringToCut)) {
 
                     // aktualizacja progresu i wysłanie go do serwera (docelowo do pozostałych k
                     // ientów)
@@ -88,7 +88,7 @@ public class ClientGUI extends JFrame {
                                 pp.setSkillAvailability(idSkill, true);
 
                     // sprawdzenie czy użytkownik ukończył app.zadanie
-                    if (app.zadanie.isSuccess) {
+                    if (app.zadanie.isFinished()) {
                         input.setEnabled(false);
 
                         app.client.sendPacket(new Packet(Command.WIN, app.playerId));
@@ -111,6 +111,7 @@ public class ClientGUI extends JFrame {
         logs.setOpaque(false);
         logs.setEditable(false);
         logs.setFocusable(false);
+        logs.setFont(new Font("Verdana", Font.PLAIN, 14));
         logs.setBorder(new EmptyBorder(4, 4, 4, 4));
 
         panelGry.add(text, BorderLayout.CENTER);
@@ -272,6 +273,7 @@ public class ClientGUI extends JFrame {
         }
     }
 
+    // FIXME: gdy dezerter wychodzi podczas działania umiejętności na użytkowniku x, tekst u x zostaje zerowany po czym po działaniu umiejętności wyświetlany jest znowu (nawet po rywalizacji)  
     protected void castDebuff(Debuff d) {
         if (d == Debuff.INVISIBILITY)
             this.castInvisibilityDebuff();

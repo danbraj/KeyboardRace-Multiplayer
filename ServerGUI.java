@@ -26,7 +26,7 @@ public class ServerGUI extends JFrame {
         // -- panel górny
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         logs = new JTextArea();
-        logs.setForeground(Color.BLUE);
+        logs.setForeground(Color.decode("#572c2a"));
         logs.setLineWrap(true);
         logs.setEditable(false);
 
@@ -139,7 +139,7 @@ public class ServerGUI extends JFrame {
 
             if (result == JOptionPane.YES_OPTION) {
                 FilesService.stringToFile(tf.getText() + ".txt", ta.getText());
-                // TODO: obsługa błędów i sprawdzić poprawność nazwy pliku
+                // TODO: obsługa błędów i sprawdzić poprawność nazwy pliku, czy plik już istnieje
             }
         }
     }
@@ -163,11 +163,14 @@ public class ServerGUI extends JFrame {
                 String taskContent = new Scanner(file, "UTF-8").useDelimiter("\\A").next();
                 return new Zadanie(taskContent);
             } catch (IOException e) {
-                System.out.println("Błąd odczytu pliku.");
-                System.exit(2);
+                addLog("Błąd zadania: Błąd odczytu pliku.");
+                return null;
+            } catch (NoSuchElementException e) {
+                addLog("Błąd zadania: Plik tekstowy nie może być pusty");
+                return null;
             }
         } else {
-            addLog("Nie ma plików z tekstami");
+            addLog("Brak tekstów! Upewnij się czy istnieje folder Texts/ w głównym katalogu a w nim jakieś pliki tekstowe.");
         }
         return null;
     }

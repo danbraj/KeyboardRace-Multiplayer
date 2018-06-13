@@ -1,1 +1,0 @@
-Klient to program komputerowy występujący w roli klienta wobec usług dostarczanych przez serwer. Potocznie mianem klienta określa się również komputer lub hosta, na którym działa program w roli klienta. - wikipedia

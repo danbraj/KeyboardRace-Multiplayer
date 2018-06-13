@@ -2,20 +2,20 @@ import java.io.Serializable;
 
 public class Zadanie implements Serializable {
 
-    public boolean isSuccess = false;
+    private boolean isFinished = false;
+    private int counter = 0;
+    private int progress = 0;
+    private int wordsCount = 0;
     private String text;
     private String[] words;
-    private int counter = 0;
-    private int wordsCount = 0;
-    private int progress = 0;
 
     public Zadanie(String text) {
+        this.isFinished = false;
+        this.counter = 0;
+        this.progress = 0;
         this.text = text;
         this.words = text.split(" ");
         this.wordsCount = words.length;
-        this.counter = 0;
-        this.progress = 0;
-        this.isSuccess = false;
     }
 
     public String getText() {
@@ -26,17 +26,21 @@ public class Zadanie implements Serializable {
         return this.progress;
     }
 
-    public boolean ifEqualsGoNext(String word) {
-        if (!this.isSuccess) {
+    public boolean wordPadIfEquals(String word) {
+        if (!this.isFinished) {
             if (word.equals(this.words[this.counter])) {
                 if (this.counter == this.wordsCount - 1)
-                    this.isSuccess = true;
+                    this.isFinished = true;
                 this.counter++;
-                this.progress = (int) Math.floor(((double) this.counter / this.wordsCount) * 100);
+                this.progress = Common.percentage(this.counter, this.wordsCount);
                 return true;
             } else
                 return false;
         } else
             return false;
+    }
+
+    public boolean isFinished() {
+        return this.isFinished;
     }
 }

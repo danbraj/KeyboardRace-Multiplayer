@@ -118,8 +118,6 @@ public class ServerConnection extends Connection implements Runnable {
 
                     // jeżeli wszyscy użytkownicy byli gotowi to startuje gra
                     if (isReadyAll) {
-                        App.STATUS |= Status.STARTED;
-
                         synchronized (gui.app.leaderboard) {
                             gui.app.leaderboard.clear();
                         }
@@ -127,6 +125,7 @@ public class ServerConnection extends Connection implements Runnable {
                         // wylosowanie zadania oraz jego przydzielenie do użytkowników i tym samym start rozgrywki 
                         Zadanie zadanie = gui.randomizeTask();
                         if (zadanie != null) {
+                            App.STATUS |= Status.STARTED;
                             synchronized (gui.app.clients) {
                                 gui.app.playersCount = 0;
                                 Packet extendedPacket = new ExtendedPacket(Command.START_GAME, zadanie);
@@ -139,7 +138,7 @@ public class ServerConnection extends Connection implements Runnable {
                                 }
                             }
                         } else {
-                            //todo gdy nie ma żadnych zadań
+                            // TODO: gdy nie ma żadnych zadań
                         }
                     }
 
