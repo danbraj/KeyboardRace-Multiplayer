@@ -65,6 +65,9 @@ public class PanelPlayer extends JPanel {
         left.setPreferredSize(new Dimension(340, 340));
 
         progress = new JProgressBar();
+        Color c = Color.decode(ClientApp.COLOR_CODES_OF_PLAYERS[index]);
+        Color cbg = Common.bleach(c, 0.5f); 
+        progress.setForeground(cbg);
 
         // -- rozmieszczenie paneli (z wylaczeniem progressbara)
         left.add(color, BorderLayout.LINE_START);

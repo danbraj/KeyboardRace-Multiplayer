@@ -1,8 +1,10 @@
 # Keyboard Race "Wyścig na klawiaturze" Multiplayer
 
-`uek :: Application for quick writing exercise with elements of competition`
+`uek :: An application for quick writing exercise with elements of competition`
 
-Go to [project description](https://github.com/danbraj/Wnkm/tree/gh-pages) (only pl) 👉
+Go to [project description](https://github.com/danbraj/Wnkm/tree/gh-pages) (🇵🇱 Polish only)
+
+If you would like to run this application, you need to download JRE.
 
 **USAGE**
 
@@ -11,7 +13,7 @@ Go to [project description](https://github.com/danbraj/Wnkm/tree/gh-pages) (only
 
 or
 
-1. Go to [release](https://github.com/danbraj/Wnkm/releases) 👉
+1. Go to [release](https://github.com/danbraj/Wnkm/releases)
 2. Download compiled apps
 3. Create `Texts` in main directory and add several `.txt` files (server app only)
 
