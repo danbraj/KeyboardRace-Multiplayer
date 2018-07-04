@@ -1,4 +1,10 @@
 theme: jekyll-theme-cayman
+
 title: Keyboard Race "Wyścig na klawiaturze" Multiplayer
 description: Aplikacja do ćwiczenia szybkiego pisania na klawiaturze z elementami rywalizacji
+
 show_downloads: true
+
+github:
+  zip_url: https://github.com/danbraj/KeyboardRace-Multiplayer/zipball/master
+  tar_url: https://github.com/danbraj/KeyboardRace-Multiplayer/tarball/master
