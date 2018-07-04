@@ -237,7 +237,7 @@ public class ClientGUI extends JFrame {
             } else if (e.getSource() == btnDocumentation) {
                 
                 try {
-                    Desktop.getDesktop().browse(new URI("https://github.com/danbraj/psr-projekt/tree/gh-pages"));
+                    Desktop.getDesktop().browse(new URI("https://github.com/danbraj/KeyboardRace-Multiplayer/tree/gh-pages"));
                 } catch (Exception ex) {
                     addToEventLog("Nie udało się przejść do dokumentacji aplikacji.");
                 }
