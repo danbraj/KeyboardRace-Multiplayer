@@ -1,0 +1,28 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+// my overrides styles :)
+.skip-link {
+    height: 1px;
+    width: 1px;
+    position: absolute;
+    overflow: hidden;
+    top: -10px;
+}
+
+.page-header {
+    background-color: #507d2a;
+    background-image: linear-gradient(120deg, #507d2a, black);
+}
+
+.main-content {
+    h1, h2, h3, h4, h5, h6 {
+        color: #507d2a;
+    }
+}
+
+a {
+    color: #ff4e7f;
+}
