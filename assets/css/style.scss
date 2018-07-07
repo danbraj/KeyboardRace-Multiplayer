@@ -1,6 +1,11 @@
 ---
 ---
 
+$header-bg-color: black;
+$header-bg-color-secondary: #507d2a;
+$section-headings-color: #507d2a;
+$body-link-color: #ff4e7f;
+
 @import "{{ site.theme }}";
 
 // my overrides styles :)
@@ -12,17 +17,6 @@
     top: -10px;
 }
 
-.page-header {
-    background-color: #507d2a;
-    background-image: linear-gradient(120deg, #507d2a, black);
-}
-
-.main-content {
-    h1, h2, h3, h4, h5, h6 {
-        color: #507d2a;
-    }
-}
-
-a {
-    color: #ff4e7f;
+p, li {
+    text-align: justify;
 }
