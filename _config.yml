@@ -1,7 +1,13 @@
-theme: jekyll-theme-cayman
+remote_theme: danbraj/falcon-jekyll-theme
 
 title: Keyboard Race "Wyścig na klawiaturze" Multiplayer
 description: Aplikacja do ćwiczenia szybkiego pisania na klawiaturze z elementami rywalizacji
 lang: pl
 
-show_downloads: true
+kramdown: 
+  toc_levels: '2,3'
+
+# Custom
+nav:
+  - title: Author
+    url: https://github.com/danbraj

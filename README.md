@@ -1,19 +1,9 @@
-<!-- TOC -->
+---
+layout: default
+---
 
-- [Opis projektu](#opis-projektu)
-- [Instalacja](#instalacja)
-- [Związki pomiędzy poszczególnymi komponentami (uproszczony diagram UML)](#związki-pomiędzy-poszczególnymi-komponentami-uproszczony-diagram-uml)
-    - [Wykorzystane klasy i ich opis](#wykorzystane-klasy-i-ich-opis)
-        - [Wspólne dla klienta i serwera](#wspólne-dla-klienta-i-serwera)
-        - [Serwer](#serwer)
-        - [Klient](#klient)
-- [Przesyłanie danych pomiędzy serwerem a klientem](#przesyłanie-danych-pomiędzy-serwerem-a-klientem)
-    - [Opis klas wykorzystywanych przy komunikacji klient-serwer](#opis-klas-wykorzystywanych-przy-komunikacji-klient-serwer)
-    - [Sposób komunikacji klient-serwer](#sposób-komunikacji-klient-serwer)
-- [Opis interfejsu graficznego serwera](#opis-interfejsu-graficznego-serwera)
-- [Opis interfejsu graficznego klienta](#opis-interfejsu-graficznego-klienta)
-
-<!-- /TOC -->
+1. Spis treści
+{:toc}
 
 ## Opis projektu
 
