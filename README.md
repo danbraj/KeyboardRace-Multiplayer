@@ -1,7 +1,3 @@
----
-layout: default
----
-
 1. Spis treści
 {:toc}
 

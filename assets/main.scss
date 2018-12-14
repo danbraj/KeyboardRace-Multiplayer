@@ -4,4 +4,7 @@
 $accent-color       : #507d2a;
 $side-width         : 360px;
 
-@import '{{ site.theme }}'
+@import '{{ site.theme }}';
+
+// override
+#markdown-toc{margin-top:2rem;}
