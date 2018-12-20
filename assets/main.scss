@@ -3,8 +3,16 @@
 
 $accent-color       : #507d2a;
 $side-width         : 360px;
+$nav-items-in-column: 3;
 
 @import '{{ site.theme }}';
 
 // override
-#markdown-toc{margin-top:2rem;}
+.page-navigation a {
+    color: lighten(#507d2a, 10%);
+    text-shadow:
+   -1px -1px 0 #000,  
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+     1px 1px 0 #000;
+}

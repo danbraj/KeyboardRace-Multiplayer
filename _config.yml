@@ -8,6 +8,7 @@ kramdown:
   toc_levels: '2,3'
 
 # Custom
+default-bg-image: falcon.jpg
 nav:
   - title: Author
     url: https://github.com/danbraj
